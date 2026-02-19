@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/auth/presentation/auth_controller.dart';
+import 'features/servicos/presentation/servico_selecionado_controller.dart';
 import 'features/servicos/presentation/servicos_controller.dart';
 import 'features/auth/presentation/login_page.dart';
 
@@ -21,6 +22,7 @@ class CorteCertoApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(create: (_) => ServicosController()),
         ChangeNotifierProvider(create: (_) => AgendamentoController()),
+        ChangeNotifierProvider(create: (_) => ServicoSelecionadoController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

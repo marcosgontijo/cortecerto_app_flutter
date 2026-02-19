@@ -1,155 +1,219 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../servicos/domain/servico.dart';
+import '../auth/presentation/login_page.dart';
+import '../servicos/presentation/servico_selecionado_controller.dart';
 import 'data/agendamento_controller.dart';
 
-class AgendamentoPage extends StatefulWidget {
-  final Servico servico;
+class AgendamentoPage extends StatelessWidget {
+  const AgendamentoPage({super.key});
 
-  const AgendamentoPage({
-    super.key,
-    required this.servico,
-  });
+  void _mostrarDialogSucesso(BuildContext context, String data, String horario) {
 
-  @override
-  State<AgendamentoPage> createState() => _AgendamentoPageState();
-}
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
 
-class _AgendamentoPageState extends State<AgendamentoPage> {
+        Future.delayed(const Duration(seconds: 10), () {
+          if (context.mounted) {
+            Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
+            );
+          }
+        });
 
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() =>
-        context.read<AgendamentoController>().carregarDisponibilidades());
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                Icon(
+                  Icons.check_circle,
+                  color: Theme.of(context).colorScheme.secondary,
+                  size: 70,
+                ),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  "Agendamento Confirmado!",
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 16),
+
+                Text(
+                  "Seu horário foi reservado para:",
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  "$data às $horario",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  "Você será redirecionado automaticamente...",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-
     final controller = context.watch<AgendamentoController>();
 
     return Scaffold(
       appBar: AppBar(title: const Text("Agendamento")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
 
-            /// SERVIÇO
-            Text(
-              "Serviço: ${widget.servico.tipoServico}",
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+      body: Column(
+        children: [
 
-            const SizedBox(height: 12),
+          /// 📅 CALENDÁRIO
+          CalendarDatePicker(
+            initialDate: DateTime.now(),
+            firstDate: DateTime.now(),
+            lastDate: DateTime.now().add(const Duration(days: 60)),
+            onDateChanged: (date) {
+              context.read<AgendamentoController>().carregarHorarios(date);
+            },
+          ),
 
-            const Text("Selecione uma data:"),
+          const SizedBox(height: 20),
 
-            const SizedBox(height: 12),
+          /// LOADING
+          if (controller.isLoading)
+            const CircularProgressIndicator(),
 
-            /// ÁREA ROLÁVEL
-            Expanded(
-              child: controller.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView(
+          /// DIA LOTADO
+          if (!controller.isLoading && controller.horariosDisponiveis.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 children: [
-
-                  /// CALENDÁRIO
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: controller.disponibilidades.length,
-                    gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 7,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                    ),
-                    itemBuilder: (context, index) {
-
-                      final dia = controller.disponibilidades[index];
-
-                      final temHorario = dia.horarios.isNotEmpty;
-                      final selecionado = controller.isSameDay(
-                          dia.data,
-                          controller.diaSelecionado
-                      );
-
-                      return GestureDetector(
-                        onTap: temHorario
-                            ? () => controller.selecionarDia(dia.data)
-                            : null,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: selecionado
-                                ? Theme.of(context).colorScheme.secondary
-                                : temHorario
-                                ? Colors.green.withOpacity(0.15)
-                                : Colors.red.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(
-                              "${dia.data.day}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                  Icon(
+                    Icons.event_busy,
+                    size: 60,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-
-                  const SizedBox(height: 24),
-
-                  /// HORÁRIOS
-                  if (controller.diaSelecionado != null) ...[
-                    const Text(
-                      "Horários disponíveis:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: controller.horariosDisponiveis.map((horario) {
-
-                        final selecionado =
-                            horario == controller.horarioSelecionado;
-
-                        return ChoiceChip(
-                          label: Text(horario),
-                          selected: selecionado,
-                          onSelected: (_) =>
-                              controller.selecionarHorario(horario),
-                        );
-                      }).toList(),
-                    ),
-
-                    const SizedBox(height: 30),
-                  ],
+                  const SizedBox(height: 12),
+                  Text(
+                    "Agenda cheia 😕",
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Todos os horários deste dia já foram preenchidos.\nEscolha outra data.",
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
+          /// HORÁRIOS
+          if (!controller.isLoading && controller.horariosDisponiveis.isNotEmpty)
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: controller.horariosDisponiveis.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 2.5,
+                ),
+                itemBuilder: (context, index) {
 
-            if (controller.diaSelecionado != null &&
-                controller.horarioSelecionado != null)
-              SizedBox(
+                  final horario = controller.horariosDisponiveis[index];
+                  final selecionado = controller.horarioSelecionado == horario;
+
+                  return GestureDetector(
+                    onTap: () =>
+                        context.read<AgendamentoController>()
+                            .selecionarHorario(horario),
+
+                    child: Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selecionado
+                            ? Theme.of(context).colorScheme.secondary
+                            : Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        horario,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: selecionado
+                              ? Colors.black
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          /// ✅ BOTÃO CONFIRMAR
+          if (controller.podeConfirmar)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    controller.confirmarAgendamento(widget.servico);
+                  onPressed: () async {
+
+                    final agendamentoController = context.read<AgendamentoController>();
+                    final servico = context.read<ServicoSelecionadoController>().servico!;
+
+                    final sucesso = await agendamentoController.confirmarAgendamento(servico);
+
+                    if (!context.mounted) return;
+
+                    if (sucesso) {
+
+                      final data = agendamentoController.diaSelecionado!;
+                      final horario = agendamentoController.horarioSelecionado!;
+
+                      final dataFormatada =
+                          "${data.day.toString().padLeft(2, '0')}/"
+                          "${data.month.toString().padLeft(2, '0')}";
+
+                      _mostrarDialogSucesso(context, dataFormatada, horario);
+
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          backgroundColor: Colors.red,
+                          content: Text("Erro ao realizar agendamento"),
+                        ),
+                      );
+                    }
                   },
                   child: const Text("Confirmar Agendamento"),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

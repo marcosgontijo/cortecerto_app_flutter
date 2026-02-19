@@ -13,23 +13,18 @@ class ServicosController extends ChangeNotifier {
   Future<void> carregarServicos() async {
     try {
       isLoading = true;
+      error = null;
       notifyListeners();
 
       final data = await _api.listarServicos();
-
-      print("TIPO DATA: ${data.runtimeType}");
-      print("DATA COMPLETA: $data");
 
       if (data is List) {
         servicos = data
             .map<Servico>((json) => Servico.fromJson(json))
             .toList();
       } else {
-        print("DATA NÃO É LISTA!");
         servicos = [];
       }
-
-      print("SERVICOS MAPEADOS: ${servicos.length}");
 
     } catch (e) {
       error = "Erro ao carregar serviços";
@@ -39,15 +34,4 @@ class ServicosController extends ChangeNotifier {
       notifyListeners();
     }
   }
-
-  void selecionarServico(Servico selecionado) {
-    for (var s in servicos) {
-      s.selecionado = false;
-    }
-    selecionado.selecionado = true;
-    notifyListeners();
-  }
-
-  bool get temServicoSelecionado =>
-      servicos.any((s) => s.selecionado);
 }

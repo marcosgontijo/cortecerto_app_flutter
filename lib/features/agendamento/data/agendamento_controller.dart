@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import '../data/agendamento_api.dart';
 import '../../servicos/domain/servico.dart';
-import '../domain/dia_horario_disponivel.dart';
 
 class AgendamentoController extends ChangeNotifier {
 
   final AgendamentoApi _api = AgendamentoApi();
-
-  List<DiaHorarioDisponivel> disponibilidades = [];
 
   bool isLoading = false;
   String? error;
@@ -17,20 +14,20 @@ class AgendamentoController extends ChangeNotifier {
 
   List<String> horariosDisponiveis = [];
 
-  Future<void> carregarDisponibilidades() async {
+  // CARREGA HORÁRIOS DO DIA
+  Future<void> carregarHorarios(DateTime dataSelecionada) async {
     try {
       isLoading = true;
       notifyListeners();
 
-      final data = await _api.listarDisponibilidades();
+      final lista = await _api.listarDisponibilidades(dataSelecionada);
 
-      disponibilidades = data
-          .map<DiaHorarioDisponivel>(
-              (json) => DiaHorarioDisponivel.fromJson(json))
-          .toList();
+      horariosDisponiveis = lista;
+      diaSelecionado = dataSelecionada;
+      horarioSelecionado = null;
 
     } catch (e) {
-      error = "Erro ao carregar disponibilidades";
+      error = "Erro ao carregar horários";
       print("ERRO DISPONIBILIDADES: $e");
     } finally {
       isLoading = false;
@@ -38,26 +35,14 @@ class AgendamentoController extends ChangeNotifier {
     }
   }
 
-  void selecionarDia(DateTime data) {
-    diaSelecionado = data;
-    horarioSelecionado = null;
-
-    final dia = disponibilidades
-        .where((d) => isSameDay(d.data, data))
-        .firstOrNull;
-
-    horariosDisponiveis = dia?.horarios ?? [];
-
-    notifyListeners();
-  }
-
   void selecionarHorario(String horario) {
     horarioSelecionado = horario;
     notifyListeners();
   }
 
-  Future<void> confirmarAgendamento(Servico servico) async {
-    if (diaSelecionado == null || horarioSelecionado == null) return;
+  // CONFIRMAR
+  Future<bool> confirmarAgendamento(Servico servico) async {
+    if (diaSelecionado == null || horarioSelecionado == null) return false;
 
     try {
       await _api.enviarAgendamento(
@@ -66,19 +51,11 @@ class AgendamentoController extends ChangeNotifier {
         servico: servico,
       );
 
-      print("Agendamento realizado com sucesso");
-
+      return true;
     } catch (e) {
       print("Erro ao confirmar agendamento: $e");
+      return false;
     }
-  }
-
-  bool isSameDay(DateTime a, DateTime? b) {
-    if (b == null) return false;
-
-    return a.year == b.year &&
-        a.month == b.month &&
-        a.day == b.day;
   }
 
   bool get podeConfirmar =>
