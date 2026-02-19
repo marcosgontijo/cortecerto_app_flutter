@@ -1,3 +1,4 @@
+import 'package:cortecerto_flutter/features/servicos/presentation/servico_selecionado_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../agendamento/agendamento_page.dart';
@@ -24,7 +25,7 @@ class _ServicosPageState extends State<ServicosPage> {
   Widget build(BuildContext context) {
 
     final controller = context.watch<ServicosController>();
-    final nomeUsuario = "Usuário"; // depois pegamos do token
+    final selecionado = context.watch<ServicoSelecionadoController>().servico;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Serviços")),
@@ -34,7 +35,7 @@ class _ServicosPageState extends State<ServicosPage> {
           children: [
 
             Text(
-              "Selecione o serviço de hoje $nomeUsuario",
+              "Selecione o serviço de hoje",
               style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
@@ -53,17 +54,21 @@ class _ServicosPageState extends State<ServicosPage> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 20,
                     crossAxisSpacing: 20,
-                    childAspectRatio: 0.75, // 🔥 corrigido
+                    childAspectRatio: 0.75,
                   ),
                   itemBuilder: (context, index) {
 
                     final servico = controller.servicos[index];
+                    final isSelecionado = selecionado == servico;
 
                     return GestureDetector(
-                      onTap: () => controller.selecionarServico(servico),
+                      onTap: () {
+                        context.read<ServicoSelecionadoController>()
+                            .selecionar(servico);
+                      },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: servico.selecionado
+                          color: isSelecionado
                               ? Theme.of(context)
                               .colorScheme
                               .secondary
@@ -71,7 +76,7 @@ class _ServicosPageState extends State<ServicosPage> {
                               : Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: servico.selecionado
+                            color: isSelecionado
                                 ? Theme.of(context).colorScheme.secondary
                                 : Colors.grey.shade700,
                             width: 2,
@@ -80,7 +85,7 @@ class _ServicosPageState extends State<ServicosPage> {
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min, // 🔥 importante
+                          mainAxisSize: MainAxisSize.min,
                           children: [
 
                             Icon(
@@ -107,9 +112,7 @@ class _ServicosPageState extends State<ServicosPage> {
 
                             const SizedBox(height: 8),
 
-                            Text(
-                              "R\$ ${servico.precoServico}",
-                            ),
+                            Text("R\$ ${servico.precoServico}"),
                           ],
                         ),
                       ),
@@ -118,18 +121,15 @@ class _ServicosPageState extends State<ServicosPage> {
                 ),
               ),
 
-            if (controller.temServicoSelecionado)
+            if (selecionado != null)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    final servicoSelecionado = controller.servicos
-                        .firstWhere((s) => s.selecionado);
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => AgendamentoPage(servico: servicoSelecionado),
+                        builder: (_) => const AgendamentoPage(),
                       ),
                     );
                   },
