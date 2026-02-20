@@ -37,9 +37,6 @@ Feedback visual ao usuário quando agenda está cheia
 Sessão reiniciada após conclusão do agendamento
 
 🏗️ Arquitetura
-
-O projeto foi estruturado da seguinte forma:
-
 <img width="408" height="293" alt="Arquitetura" src="https://github.com/user-attachments/assets/d4844011-3d5e-45c4-8891-91521fa3a47b" />
 Camadas
 Camada	Responsabilidade
@@ -60,7 +57,7 @@ Identidade do cliente extraída do token
 Backend validado via Spring Security Filter
 
 🧰 Tecnologias
-📱 Mobile
+Mobile
 
 Flutter
 
@@ -72,7 +69,7 @@ Dio (HTTP client)
 
 Secure Storage
 
-🖥️ Backend (API integrada)
+Backend (API integrada)
 
 Java 17
 
@@ -89,18 +86,19 @@ SQLite
 WebSocket (notificações futuras)
 
 🔄 Fluxo do Usuário
+
 Login / Cadastro
-      ↓
+⬇
 Seleção de Serviço
-      ↓
+⬇
 Escolha de Data
-      ↓
+⬇
 Horários disponíveis
-      ↓
+⬇
 Confirmação
-      ↓
+⬇
 Mensagem de sucesso
-      ↓
+⬇
 Retorno ao login
 
 🖼️ Screenshots
