@@ -36,16 +36,17 @@ Feedback visual ao usuário quando agenda está cheia
 
 Sessão reiniciada após conclusão do agendamento
 
-O projeto foi estrutura na seguinte forma : 
-<img width="408" height="293" alt="image" src="https://github.com/user-attachments/assets/d4844011-3d5e-45c4-8891-91521fa3a47b" />
+🏗️ Arquitetura
 
+O projeto foi estruturado da seguinte forma:
+
+<img width="408" height="293" alt="Arquitetura" src="https://github.com/user-attachments/assets/d4844011-3d5e-45c4-8891-91521fa3a47b" />
 Camadas
-
-presentation → UI (Widgets / Pages)
-controller → estado e fluxo da tela (ChangeNotifier)
-data/api → comunicação HTTP (Dio)
-domain → modelos da aplicação
-
+Camada	Responsabilidade
+presentation	UI (Widgets / Pages)
+controller	Estado e fluxo da tela (ChangeNotifier)
+data/api	Comunicação HTTP (Dio)
+domain	Modelos da aplicação
 🔐 Autenticação
 
 O login utiliza JWT retornado pelo backend:
@@ -56,10 +57,10 @@ Enviado automaticamente nas requisições protegidas
 
 Identidade do cliente extraída do token
 
-Backend usa Spring Security Filter
+Backend validado via Spring Security Filter
 
 🧰 Tecnologias
-Mobile
+📱 Mobile
 
 Flutter
 
@@ -71,7 +72,7 @@ Dio (HTTP client)
 
 Secure Storage
 
-Backend (API integrada)
+🖥️ Backend (API integrada)
 
 Java 17
 
@@ -87,6 +88,7 @@ SQLite
 
 WebSocket (notificações futuras)
 
+🔄 Fluxo do Usuário
 Login / Cadastro
       ↓
 Seleção de Serviço
@@ -100,13 +102,32 @@ Confirmação
 Mensagem de sucesso
       ↓
 Retorno ao login
-Login
+
+🖼️ Screenshots
+🔐 Login
 <img width="391" height="866" src="https://github.com/user-attachments/assets/95cfe54e-f41d-494d-877e-c3438c76ac7f" />
-Cadastro
+📝 Cadastro
 <img width="386" height="858" src="https://github.com/user-attachments/assets/3b09a600-9b8d-4db4-b421-619d2357ccb1" />
-Serviços
+💈 Serviços
 <img width="386" height="864" src="https://github.com/user-attachments/assets/aab083bd-b626-452f-8b50-2590ac3fa617" />
-Agenda
+📅 Agenda
 <img width="385" height="858" src="https://github.com/user-attachments/assets/82e227b0-2a42-40ae-a0db-63bdb11bd25c" />
-Confirmação
+✅ Confirmação
 <img width="388" height="859" src="https://github.com/user-attachments/assets/87f7fa67-4f39-4bf3-b4f2-ebefef5584cc" />
+🚀 Objetivo do Projeto
+
+Este projeto foi desenvolvido como estudo prático de:
+
+Arquitetura mobile escalável
+
+Integração Flutter + Spring Boot
+
+Controle de concorrência em agendamento
+
+Experiência do usuário em mobile
+
+Organização profissional de código
+
+👨‍💻 Autor
+
+Marcos Eduardo
