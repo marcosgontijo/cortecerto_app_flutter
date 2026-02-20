@@ -1,27 +1,112 @@
-# cortecerto_flutter
+💈 CorteCerto Mobile (Flutter)
 
-A new Flutter project.
+Aplicação mobile para agendamento de horários em barbearia, desenvolvida em Flutter e integrada a uma API REST em Java Spring Boot.
 
-## Getting Started
+O objetivo do projeto é permitir que clientes realizem o agendamento de serviços de forma simples, visual e segura diretamente pelo celular, evitando conflitos de horário e garantindo controle completo da agenda.
 
-This project is a starting point for a Flutter application.
+📱 Funcionalidades
 
-A few resources to get you started if this is your first Flutter project:
+Cadastro de cliente
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Login com autenticação JWT
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Listagem dinâmica de serviços
 
-<img width="391" height="866" alt="image" src="https://github.com/user-attachments/assets/95cfe54e-f41d-494d-877e-c3438c76ac7f" />
+Visualização de agenda disponível em tempo real
 
-<img width="386" height="858" alt="image" src="https://github.com/user-attachments/assets/3b09a600-9b8d-4db4-b421-619d2357ccb1" />
+Bloqueio automático de horários ocupados
 
-<img width="386" height="864" alt="image" src="https://github.com/user-attachments/assets/aab083bd-b626-452f-8b50-2590ac3fa617" />
+Confirmação de agendamento com feedback visual
 
-<img width="385" height="858" alt="image" src="https://github.com/user-attachments/assets/82e227b0-2a42-40ae-a0db-63bdb11bd25c" />
+Redirecionamento automático após confirmação
 
-<img width="388" height="859" alt="image" src="https://github.com/user-attachments/assets/87f7fa67-4f39-4bf3-b4f2-ebefef5584cc" />
+Persistência de sessão (token seguro)
+
+🧠 Regras de Negócio
+
+O aplicativo não apenas envia dados para o backend — ele participa da lógica:
+
+Apenas horários disponíveis são exibidos
+
+Horários confirmados não podem ser selecionados
+
+Concorrência protegida no backend
+
+Feedback visual ao usuário quando agenda está cheia
+
+Sessão reiniciada após conclusão do agendamento
+
+O projeto foi estrutura na seguinte forma : 
+<img width="408" height="293" alt="image" src="https://github.com/user-attachments/assets/d4844011-3d5e-45c4-8891-91521fa3a47b" />
+
+Camadas
+
+presentation → UI (Widgets / Pages)
+controller → estado e fluxo da tela (ChangeNotifier)
+data/api → comunicação HTTP (Dio)
+domain → modelos da aplicação
+
+🔐 Autenticação
+
+O login utiliza JWT retornado pelo backend:
+
+Token salvo com flutter_secure_storage
+
+Enviado automaticamente nas requisições protegidas
+
+Identidade do cliente extraída do token
+
+Backend usa Spring Security Filter
+
+🧰 Tecnologias
+Mobile
+
+Flutter
+
+Dart
+
+Provider (state management)
+
+Dio (HTTP client)
+
+Secure Storage
+
+Backend (API integrada)
+
+Java 17
+
+Spring Boot
+
+Spring Security
+
+JWT
+
+JPA / Hibernate
+
+SQLite
+
+WebSocket (notificações futuras)
+
+Login / Cadastro
+      ↓
+Seleção de Serviço
+      ↓
+Escolha de Data
+      ↓
+Horários disponíveis
+      ↓
+Confirmação
+      ↓
+Mensagem de sucesso
+      ↓
+Retorno ao login
+Login
+<img width="391" height="866" src="https://github.com/user-attachments/assets/95cfe54e-f41d-494d-877e-c3438c76ac7f" />
+Cadastro
+<img width="386" height="858" src="https://github.com/user-attachments/assets/3b09a600-9b8d-4db4-b421-619d2357ccb1" />
+Serviços
+<img width="386" height="864" src="https://github.com/user-attachments/assets/aab083bd-b626-452f-8b50-2590ac3fa617" />
+Agenda
+<img width="385" height="858" src="https://github.com/user-attachments/assets/82e227b0-2a42-40ae-a0db-63bdb11bd25c" />
+Confirmação
+<img width="388" height="859" src="https://github.com/user-attachments/assets/87f7fa67-4f39-4bf3-b4f2-ebefef5584cc" />
