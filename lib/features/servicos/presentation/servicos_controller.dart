@@ -1,36 +1,38 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+
+import '../../../core/errors/api_exception.dart';
 import '../data/servicos_api.dart';
 import '../domain/servico.dart';
 
 class ServicosController extends ChangeNotifier {
+  ServicosController(this._api);
 
-  final ServicosApi _api = ServicosApi();
+  final ServicosApi _api;
 
-  List<Servico> servicos = [];
-  bool isLoading = false;
-  String? error;
+  bool _isLoading = false;
+  String? _erro;
+  List<Servico> _servicos = const [];
+  bool _carregou = false;
+
+  bool get isLoading => _isLoading;
+  String? get erro => _erro;
+  List<Servico> get servicos => _servicos;
+
+  /// Carregou com sucesso e a lista veio vazia.
+  bool get isVazio => _carregou && _erro == null && _servicos.isEmpty;
 
   Future<void> carregarServicos() async {
+    if (_isLoading) return;
+    _isLoading = true;
+    _erro = null;
+    notifyListeners();
     try {
-      isLoading = true;
-      error = null;
-      notifyListeners();
-
-      final data = await _api.listarServicos();
-
-      if (data is List) {
-        servicos = data
-            .map<Servico>((json) => Servico.fromJson(json))
-            .toList();
-      } else {
-        servicos = [];
-      }
-
+      _servicos = await _api.listar();
+      _carregou = true;
     } catch (e) {
-      error = "Erro ao carregar serviços";
-      print("ERRO SERVICOS: $e");
+      _erro = ApiErrorMapper.fromObject(e).mensagem;
     } finally {
-      isLoading = false;
+      _isLoading = false;
       notifyListeners();
     }
   }

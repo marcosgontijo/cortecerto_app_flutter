@@ -4,4 +4,8 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Só no debug: permite HTTP para o backend local (10.0.2.2/localhost).
+         Ver res/xml/network_security_config.xml deste source set. -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
 </manifest>

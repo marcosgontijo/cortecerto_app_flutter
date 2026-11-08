@@ -1,110 +1,44 @@
 import 'package:dio/dio.dart';
-import '../../../core/storage/token_storage.dart';
+
+import '../../../core/errors/api_exception.dart';
+import '../../../core/formatters/formatters.dart';
+import '../../../core/network/api_client.dart';
 import '../../servicos/domain/servico.dart';
 
 class AgendamentoApi {
+  AgendamentoApi(ApiClient client) : _dio = client.dio;
 
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: "http://10.0.2.2:8081/api",
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-    ),
-  );
+  final Dio _dio;
 
-  final TokenStorage _storage = TokenStorage();
-
-  // ==============================
-  // LISTAR HORÁRIOS DISPONÍVEIS
-  // ==============================
-  Future<List<String>> listarDisponibilidades(DateTime data) async {
-
-    final token = await _storage.getToken();
-
-    final dataFormatada =
-        "${data.year}-${data.month.toString().padLeft(2,'0')}-${data.day.toString().padLeft(2,'0')}";
-
-    print("BUSCANDO DISPONIBILIDADE PARA: $dataFormatada");
-
+  /// Horários livres (`HH:mm`) do dia.
+  Future<List<String>> disponibilidades(DateTime data) async {
     try {
-      final response = await _dio.get(
-        "/agendamento/disponibilidades",
-        queryParameters: {"data": dataFormatada},
-        options: Options(headers: {
-          "Authorization": "Bearer $token",
-        }),
+      final resp = await _dio.get<List<dynamic>>(
+        '/agendamento/disponibilidades',
+        queryParameters: {'data': Formatters.dataApi(data)},
       );
-
-      print("HORARIOS RECEBIDOS: ${response.data}");
-
-      return List<String>.from(response.data);
-
+      return (resp.data ?? const []).map((h) => '$h').toList();
     } on DioException catch (e) {
-
-      print("ERRO DISPONIBILIDADES: ${e.response?.statusCode}");
-
-      if (e.response?.statusCode == 401) {
-        throw Exception("Sessão expirada");
-      }
-
-      throw Exception("Erro ao carregar horários");
+      throw ApiErrorMapper.deDioException(e);
     }
   }
 
-
-  // ==============================
-  // ENVIAR AGENDAMENTO
-  // ==============================
-  Future<bool> enviarAgendamento({
+  Future<void> agendar({
     required DateTime data,
     required String horario,
     required Servico servico,
   }) async {
-
-    final token = await _storage.getToken();
-
-    final payload = {
-      "data": data.toIso8601String().split("T")[0],
-      "horario": horario,
-      "servico": {
-        "tipoServico": servico.tipoServico,
-        "descricao": servico.descricao,
-        "precoServico": servico.precoServico,
-      },
-    };
-
-    print("ENVIANDO AGENDAMENTO: $payload");
-
     try {
-
-      await _dio.post(
-        "/agendamento",
-        data: payload,
-        options: Options(headers: {
-          "Authorization": "Bearer $token",
-        }),
+      await _dio.post<dynamic>(
+        '/agendamento',
+        data: {
+          'data': Formatters.dataApi(data),
+          'horario': horario,
+          'servico': servico.toAgendamentoJson(),
+        },
       );
-
-      print("AGENDAMENTO OK");
-      return true;
-
     } on DioException catch (e) {
-
-      final status = e.response?.statusCode;
-
-      print("ERRO AO AGENDAR: $status");
-
-      // 🔒 horário já reservado por outro usuário
-      if (status == 409) {
-        return false;
-      }
-
-      // 🔐 token expirou
-      if (status == 401) {
-        throw Exception("Sessão expirada");
-      }
-
-      throw Exception("Erro ao realizar agendamento");
+      throw ApiErrorMapper.deDioException(e);
     }
   }
 }

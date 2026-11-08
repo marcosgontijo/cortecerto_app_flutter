@@ -1,8 +1,12 @@
-import 'package:cortecerto_flutter/features/auth/presentation/register_page.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:provider/provider.dart';
-import 'package:cortecerto_flutter/features/servicos/presentation/servicos_page.dart';
-import '../../../core/auth/presentation/auth_controller.dart';
+
+import '../../../core/router/rotas.dart';
+import '../../../core/session/session_controller.dart';
+import '../../../core/validators/validators.dart';
+import 'login_controller.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,10 +16,14 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-
+  final _formKey = GlobalKey<FormState>();
   final _cpfController = TextEditingController();
   final _senhaController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final _cpfMask = MaskTextInputFormatter(
+    mask: '###.###.###-##',
+    filter: {'#': RegExp(r'[0-9]')},
+  );
+  bool _senhaVisivel = false;
 
   @override
   void dispose() {
@@ -24,147 +32,139 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  Future<void> _entrar() async {
+    FocusScope.of(context).unfocus();
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    // A navegação acontece pelo redirect do router quando a sessão inicia;
+    // em caso de erro, a mensagem aparece na própria tela.
+    await context.read<LoginController>().entrar(
+          cpf: Validators.somenteDigitos(_cpfController.text),
+          senha: _senhaController.text,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final controller = context.watch<LoginController>();
+    final aviso = context.watch<SessionController>().mensagem;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Corte Certo"),
-      ),
+      appBar: AppBar(title: const Text('Corte Certo')),
       body: Center(
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-
-              const SizedBox(height: 20),
-
-              // 🔴 Ícone estilo barber
-              Icon(
-                Icons.content_cut,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-
-              const SizedBox(height: 30),
-
-              // 🔵 Card de Login
-              Container(
-                padding: const EdgeInsets.all(32),
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(40),
-                  boxShadow: const [
-                    BoxShadow(
-                      blurRadius: 20,
-                      color: Colors.black26,
-                      offset: Offset(0, 4),
-                    )
-                  ],
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Icon(Icons.content_cut, size: 72, color: theme.colorScheme.secondary),
+                const SizedBox(height: 16),
+                Text(
+                  'Bem-vindo',
+                  style: theme.textTheme.titleLarge,
+                  textAlign: TextAlign.center,
                 ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-
-                      Text(
-                        "Bem-vindo",
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      TextFormField(
-                        controller: _cpfController,
-                        decoration: const InputDecoration(
-                          labelText: "CPF",
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Informe o CPF";
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      TextFormField(
-                        controller: _senhaController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: "Senha",
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Informe a senha";
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-
-                              print("BOTÃO CLICADO");
-
-                              final controller = context.read<AuthController>();
-
-                              final success = await controller.login(
-                                _cpfController.text,
-                                _senhaController.text,
-                              );
-
-                              if (!mounted) return;
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ServicosPage(),
-                                ),
-                              );
-                            }
-                          },
-                          child: const Text("Entrar"),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(50),
-                            ),
-                          ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const RegisterPage(),
-                                ),
-                              );
-                            },
-                          child: const Text("Cadastrar"),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 24),
+                if (aviso != null) ...[
+                  _Aviso(key: const Key('aviso-login'), texto: aviso),
+                  const SizedBox(height: 16),
+                ],
+                TextFormField(
+                  key: const Key('campo-cpf'),
+                  controller: _cpfController,
+                  inputFormatters: [_cpfMask],
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'CPF',
+                    hintText: '000.000.000-00',
                   ),
+                  validator: (v) {
+                    final d = Validators.somenteDigitos(v);
+                    if (d.isEmpty) return 'Informe o CPF';
+                    if (d.length != 11) return 'O CPF deve ter 11 dígitos';
+                    return null;
+                  },
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const Key('campo-senha'),
+                  controller: _senhaController,
+                  obscureText: !_senhaVisivel,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => controller.isLoading ? null : _entrar(),
+                  decoration: InputDecoration(
+                    labelText: 'Senha',
+                    suffixIcon: IconButton(
+                      tooltip: _senhaVisivel ? 'Ocultar senha' : 'Mostrar senha',
+                      icon: Icon(_senhaVisivel ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _senhaVisivel = !_senhaVisivel),
+                    ),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Informe a senha' : null,
+                ),
+                if (controller.erro != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    controller.erro!,
+                    key: const Key('erro-login'),
+                    style: TextStyle(color: theme.colorScheme.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  key: const Key('botao-entrar'),
+                  onPressed: controller.isLoading ? null : _entrar,
+                  child: controller.isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Entrar'),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  key: const Key('link-cadastro'),
+                  onPressed: controller.isLoading
+                      ? null
+                      : () => context.pushNamed(Rotas.nomeCadastro),
+                  child: const Text('Não tem conta? Cadastre-se'),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Aviso extends StatelessWidget {
+  const _Aviso({super.key, required this.texto});
+
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.secondary.withValues(alpha: 0.15),
+        border: Border.all(color: cs.secondary),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: cs.secondary),
+          const SizedBox(width: 8),
+          Expanded(child: Text(texto)),
+        ],
       ),
     );
   }

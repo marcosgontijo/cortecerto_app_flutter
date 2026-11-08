@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Acesso à API do backend (necessário também em release). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="cortecerto_flutter"
         android:name="${applicationName}"

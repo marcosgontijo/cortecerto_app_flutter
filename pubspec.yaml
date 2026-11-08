@@ -37,6 +37,8 @@ dependencies:
   go_router: ^14.0.0
   cupertino_icons: ^1.0.8
   table_calendar: ^3.1.2
+  intl: ^0.20.3
+  mask_text_input_formatter: ^2.9.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -52,6 +54,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  mocktail: ^1.0.5
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

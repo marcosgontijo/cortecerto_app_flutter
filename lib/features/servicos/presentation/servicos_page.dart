@@ -1,9 +1,13 @@
-import 'package:cortecerto_flutter/features/servicos/presentation/servico_selecionado_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../agendamento/agendamento_page.dart';
-import 'servicos_controller.dart';
+
+import '../../../core/formatters/formatters.dart';
+import '../../../core/router/rotas.dart';
+import '../../../core/session/session_controller.dart';
+import '../../../core/widgets/logout_button.dart';
 import '../domain/servico.dart';
+import 'servicos_controller.dart';
 
 class ServicosPage extends StatefulWidget {
   const ServicosPage({super.key});
@@ -13,145 +17,177 @@ class ServicosPage extends StatefulWidget {
 }
 
 class _ServicosPageState extends State<ServicosPage> {
-
   @override
   void initState() {
     super.initState();
-    Future.microtask(() =>
-        context.read<ServicosController>().carregarServicos());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ServicosController>().carregarServicos();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-
     final controller = context.watch<ServicosController>();
-    final selecionado = context.watch<ServicoSelecionadoController>().servico;
+    final nome = context.watch<SessionController>().usuario?.nome ?? '';
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Serviços")),
+      appBar: AppBar(
+        title: const Text('Serviços'),
+        actions: [
+          IconButton(
+            key: const Key('botao-produtos-appbar'),
+            tooltip: 'Produtos',
+            icon: const Icon(Icons.shopping_bag_outlined),
+            onPressed: () => context.pushNamed(Rotas.nomeProdutos),
+          ),
+          const LogoutButton(),
+        ],
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-
             Text(
-              "Selecione o serviço de hoje",
-              style: Theme.of(context).textTheme.titleLarge,
+              nome.isEmpty ? 'Olá!' : 'Olá, $nome!',
+              key: const Key('saudacao'),
+              style: theme.textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
-
-            const SizedBox(height: 30),
-
-            if (controller.isLoading)
-              const CircularProgressIndicator(),
-
-            if (!controller.isLoading)
-              Expanded(
-                child: GridView.builder(
-                  itemCount: controller.servicos.length,
-                  gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 20,
-                    crossAxisSpacing: 20,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemBuilder: (context, index) {
-
-                    final servico = controller.servicos[index];
-                    final isSelecionado = selecionado == servico;
-
-                    return GestureDetector(
-                      onTap: () {
-                        context.read<ServicoSelecionadoController>()
-                            .selecionar(servico);
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isSelecionado
-                              ? Theme.of(context)
-                              .colorScheme
-                              .secondary
-                              .withOpacity(0.2)
-                              : Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelecionado
-                                ? Theme.of(context).colorScheme.secondary
-                                : Colors.grey.shade700,
-                            width: 2,
-                          ),
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-
-                            Icon(
-                              _mapIcon(servico.tipoServico),
-                              size: 40,
-                            ),
-
-                            const SizedBox(height: 10),
-
-                            Text(
-                              servico.tipoServico,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-
-                            const SizedBox(height: 8),
-
-                            Text(
-                              servico.descricao,
-                              textAlign: TextAlign.center,
-                            ),
-
-                            const SizedBox(height: 8),
-
-                            Text("R\$ ${servico.precoServico}"),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-            if (selecionado != null)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AgendamentoPage(),
-                      ),
-                    );
-                  },
-                  child: const Text("Agendamento"),
-                ),
-              ),
+            const SizedBox(height: 4),
+            const Text(
+              'Selecione o serviço de hoje',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Expanded(child: _conteudo(context, controller)),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('botao-produtos'),
+              onPressed: () => context.pushNamed(Rotas.nomeProdutos),
+              icon: const Icon(Icons.shopping_bag_outlined),
+              label: const Text('Ver produtos'),
+            ),
           ],
         ),
       ),
     );
   }
 
-  IconData _mapIcon(String tipo) {
-    switch (tipo) {
-      case "Corte Simples":
-        return Icons.content_cut;
-      case "Corte + Barba":
-        return Icons.face;
-      case "Barba":
-        return Icons.content_cut;
-      default:
-        return Icons.content_cut;
+  Widget _conteudo(BuildContext context, ServicosController controller) {
+    if (controller.isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
+    if (controller.erro != null) {
+      return _Estado(
+        key: const Key('servicos-erro'),
+        icone: Icons.error_outline,
+        texto: controller.erro!,
+        acao: 'Tentar novamente',
+        onAcao: controller.carregarServicos,
+      );
+    }
+    if (controller.isVazio) {
+      return _Estado(
+        key: const Key('servicos-vazio'),
+        icone: Icons.inbox_outlined,
+        texto: 'Nenhum serviço disponível no momento.',
+        acao: 'Tentar novamente',
+        onAcao: controller.carregarServicos,
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: controller.carregarServicos,
+      child: ListView.separated(
+        itemCount: controller.servicos.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (context, i) => _ServicoCard(servico: controller.servicos[i]),
+      ),
+    );
+  }
+}
+
+class _ServicoCard extends StatelessWidget {
+  const _ServicoCard({required this.servico});
+
+  final Servico servico;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      key: Key('servico-${servico.id}'),
+      color: cs.surface,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Icon(iconeDoServico(servico.tipoServico), color: cs.secondary, size: 32),
+        title: Text(
+          servico.tipoServico,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: (servico.descricao ?? '').isEmpty ? null : Text(servico.descricao!),
+        trailing: Text(
+          Formatters.precoTexto(servico.precoServico),
+          style: TextStyle(color: cs.secondary, fontWeight: FontWeight.bold),
+        ),
+        onTap: () => context.pushNamed(Rotas.nomeAgendamento, extra: servico),
+      ),
+    );
+  }
+}
+
+/// Ícones por tipo, como no web.
+IconData iconeDoServico(String tipo) {
+  switch (tipo) {
+    case 'Corte Simples':
+      return Icons.content_cut;
+    case 'Corte + Barba':
+      return Icons.face;
+    case 'Barba':
+      return Icons.person;
+    case 'Sobrancelha':
+      return Icons.remove_red_eye;
+    case 'Corte Completo':
+      return Icons.sentiment_satisfied;
+    default:
+      return Icons.content_cut;
+  }
+}
+
+class _Estado extends StatelessWidget {
+  const _Estado({
+    super.key,
+    required this.icone,
+    required this.texto,
+    required this.acao,
+    required this.onAcao,
+  });
+
+  final IconData icone;
+  final String texto;
+  final String acao;
+  final VoidCallback onAcao;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icone, size: 48),
+          const SizedBox(height: 12),
+          Text(texto, textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onAcao,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(acao),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
