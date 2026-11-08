@@ -18,7 +18,7 @@ Regras gerais:
 - App **mobile Flutter** (CorteCerto), migração do web Angular. Os repositórios e permissões estão na tabela do `TAREFA.md`.
 - **Backend Spring Boot** (editável): `C:\Users\Usuario\Documents\Projetos\Dev\Projetos\cortecerto-backend-loop` (worktree, branch `loop/mobile-migration`).
 - **Referência do web** (somente leitura, nunca editar): `cortecerto-backend-loop\web\cortecertoweb`. A pasta antiga `cortecertoweb` NÃO é referência.
-- Comandos: Flutter `flutter pub get`, `flutter analyze`, `flutter test`. Backend: `./mvnw test` (precisa de JDK 17).
+- Comandos: Flutter `flutter pub get`, `flutter analyze`, `flutter test`. Backend: `./mvnw test` (precisa de Java 21: exporte `JAVA_HOME=/c/Users/Usuario/.jdks/corretto-21.0.11` e coloque `$JAVA_HOME/bin` no começo do PATH; o java do PATH do sistema é o 8).
 - O `.loop/gate.sh` deve rodar os testes dos DOIS lados (Flutter e backend).
 - Nunca fazer commit/push no repositório do backend.
 

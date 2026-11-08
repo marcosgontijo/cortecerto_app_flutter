@@ -58,5 +58,9 @@ protegidos, autorização por papel (CLIENTE/ADMIN) e nenhuma possibilidade de a
 ## Restrições
 - Não fazer commit nem push no backend. As mudanças ficam na worktree para revisão humana.
 - Seguir o padrão controller → service → repository + DTO + Flyway.
-- **Pré-requisito:** JDK 17. Se não estiver disponível, o finalizador marca **BLOQUEADO**.
+- **Pré-requisito:** Java 21 (o `pom.xml` exige 21). Use o Corretto em `C:\Users\Usuario\.jdks\corretto-21.0.11`.
+  Todo comando do backend, inclusive no gate, precisa exportar antes:
+  `export JAVA_HOME=/c/Users/Usuario/.jdks/corretto-21.0.11; export PATH="$JAVA_HOME/bin:$PATH"`
+  (no WSL: `/mnt/c/Users/Usuario/.jdks/corretto-21.0.11`). O `java` do PATH do sistema é o 8 e não serve.
+  Se o Java 21 não funcionar, o finalizador marca **BLOQUEADO**.
 - O gate (`.loop/gate.sh`) desta fase roda `./mvnw test` dentro de `cortecerto-backend-loop`.
