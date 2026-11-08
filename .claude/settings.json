@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "C:\\Users\\Usuario\\Documents\\Projetos\\Dev\\Projetos\\cortecerto-backend-loop"
+    ],
+    "allow": [
+      "Bash(flutter:*)",
+      "Bash(dart:*)",
+      "Bash(./mvnw:*)",
+      "Bash(mvnw:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(bash .loop/*)",
+      "Bash(mkdir -p .loop)"
+    ]
+  },
+  "hooks": {
+    "Stop": [{ "hooks": [{ "type": "command", "command": "bash .claude/stop-gate.sh" }] }]
+  }
+}
