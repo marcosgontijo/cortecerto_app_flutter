@@ -3,6 +3,7 @@
 [ -d .loop ] || exit 0
 GATE=.loop/gate.frozen.sh; [ -f "$GATE" ] || GATE=.loop/gate.sh
 [ -f "$GATE" ] || exit 0                    # tester ainda não criou o gate
+[ -f .loop/veredito.md ] || exit 0         # volta em andamento (sem veredito ainda): não bloqueia
 
 # Limite de segurança: no máximo 6 bloqueios
 N=$(cat .loop/stop-count 2>/dev/null || echo 0)
