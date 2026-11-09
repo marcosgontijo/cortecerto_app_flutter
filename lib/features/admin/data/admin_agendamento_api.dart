@@ -5,6 +5,7 @@ import '../../../core/formatters/formatters.dart';
 import '../../../core/network/api_client.dart';
 import '../../agendamento/domain/status_agendamento.dart';
 import '../domain/agendamento_admin.dart';
+import '../domain/faturamento.dart';
 
 /// CRUD de agendamentos do admin (`/agendamento/admin/**`, só ADMIN).
 class AdminAgendamentoApi {
@@ -83,6 +84,23 @@ class AdminAgendamentoApi {
   Future<void> cancelar(int id) async {
     try {
       await _dio.put<dynamic>('/agendamento/$id/cancelar');
+    } on DioException catch (e) {
+      throw ApiErrorMapper.deDioException(e);
+    }
+  }
+
+  /// FASE 5: faturamento de [inicio] a [fim] (as duas pontas incluídas). Sempre busca no
+  /// servidor (sem cache).
+  Future<Faturamento> faturamento(DateTime inicio, DateTime fim) async {
+    try {
+      final resp = await _dio.get<Map<String, dynamic>>(
+        '/agendamento/admin/faturamento',
+        queryParameters: {
+          'inicio': Formatters.dataApi(inicio),
+          'fim': Formatters.dataApi(fim),
+        },
+      );
+      return Faturamento.fromJson(resp.data ?? const {});
     } on DioException catch (e) {
       throw ApiErrorMapper.deDioException(e);
     }

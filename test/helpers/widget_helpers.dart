@@ -39,6 +39,11 @@ Widget comRouter(Widget pagina, {required List<SingleChildWidget> providers}) {
         builder: (_, _) => stub('form'),
       ),
       GoRoute(
+        path: Rotas.adminFaturamento,
+        name: Rotas.nomeAdminFaturamento,
+        builder: (_, _) => stub('faturamento'),
+      ),
+      GoRoute(
         path: Rotas.meusAgendamentos,
         name: Rotas.nomeMeusAgendamentos,
         builder: (_, _) => stub('meus'),

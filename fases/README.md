@@ -6,7 +6,7 @@
 | [FASE-2](FASE-2.md) | Base do app (go_router, sessão, ApiClient único, DI) + telas do cliente + seed de serviços ✅ entregue (volta 1) | Flutter (+ 1 migration no backend) | `flutter analyze` + `flutter test` + `./mvnw test` + testes de contrato com o backend real |
 | [FASE-3](FASE-3.md) | Pendências da FASE 2 + CRUD de agendamentos do admin (Painel e Agenda Admin) + "Meus Agendamentos" sempre atualizado ✅ entregue (volta 3) | Backend + Flutter | `./mvnw test` + `flutter analyze` + `flutter test` + contrato ponta a ponta (admin altera → cliente vê) |
 | [FASE-4](FASE-4.md) | Redesign de UI/UX de todas as telas com o design system (`design-system/cortecerto/MASTER.md`, skill ui-ux-pro-max), acessibilidade testada ✅ entregue (volta 5) | Flutter (backend só testado) | `flutter analyze` + `flutter test` (com guidelines de acessibilidade) + `./mvnw test` + contrato |
-| [FASE-5](FASE-5.md) | Faturamento do admin (dia/semana/mês; recebido = REALIZADO, previsto à parte; preço gravado no agendamento) + grade de horários com colunas iguais | Backend + Flutter | `./mvnw test` + `flutter analyze` + `flutter test` + contrato (admin realiza → faturamento mostra) |
+| [FASE-5](FASE-5.md) | Faturamento do admin (dia/semana/mês; recebido = REALIZADO, previsto à parte; preço gravado no agendamento) + grade de horários com colunas iguais ✅ entregue (volta 1) | Backend + Flutter | `./mvnw test` + `flutter analyze` + `flutter test` + contrato (admin realiza → faturamento mostra) |
 
 O loop sempre lê o `TAREFA.md` da raiz. **A fase ativa é a que está copiada lá.**
 

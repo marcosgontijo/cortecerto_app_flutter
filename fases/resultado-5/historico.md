@@ -1,0 +1,1 @@
+Volta 1 (HEAD ffeb405; backend 7620220): ENTREGUE — FASE 5 (faturamento do admin com V6 valor_centavos e grade de horários uniforme) com gate congelado PASSOU: Flutter 519, backend 265, contrato 4/4, review APROVADO.

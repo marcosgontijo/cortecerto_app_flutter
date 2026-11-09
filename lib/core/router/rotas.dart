@@ -11,6 +11,7 @@ class Rotas {
   static const admin = '/admin';
   static const adminAgenda = '/admin/agenda';
   static const adminAgendamentoForm = '/admin/agenda/form';
+  static const adminFaturamento = '/admin/faturamento';
   static const meusAgendamentos = '/meus-agendamentos';
 
   static const nomeLogin = 'login';
@@ -22,6 +23,7 @@ class Rotas {
   static const nomeAdmin = 'admin';
   static const nomeAdminAgenda = 'admin-agenda';
   static const nomeAdminAgendamentoForm = 'admin-agendamento-form';
+  static const nomeAdminFaturamento = 'admin-faturamento';
   static const nomeMeusAgendamentos = 'meus-agendamentos';
 
   static const publicas = {login, cadastro};

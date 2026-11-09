@@ -70,6 +70,11 @@ void main() {
       (TelaF4.formAdmin, EstadoF4.vazioHorarios),
       // volta 5: erro da busca de clientes (EstadoErro com Key form-erro-clientes)
       (TelaF4.formAdmin, EstadoF4.erroClientes),
+      // FASE 5 (developer): Faturamento vazio, erro e Semana/Mês (lista por dia com barras)
+      (TelaF4.faturamento, EstadoF4.vazio),
+      (TelaF4.faturamento, EstadoF4.erro),
+      (TelaF4.faturamento, EstadoF4.semana),
+      (TelaF4.faturamento, EstadoF4.mes),
     ];
     for (final (tela, estado) in extras) {
       testWidgets('${tela.name} / ${estado.name}', (tester) async {
@@ -223,6 +228,11 @@ void main() {
       (TelaF4.formAdmin, EstadoF4.vazioServicos),
       (TelaF4.formAdmin, EstadoF4.vazioHorarios),
       (TelaF4.formAdmin, EstadoF4.erroClientes),
+      // FASE 5 (developer)
+      (TelaF4.faturamento, EstadoF4.vazio),
+      (TelaF4.faturamento, EstadoF4.erro),
+      (TelaF4.faturamento, EstadoF4.semana),
+      (TelaF4.faturamento, EstadoF4.mes),
     ]) {
       testWidgets('${tela.name} / ${estado.name}', (tester) async {
         tester.view.physicalSize = const Size(360, 640);

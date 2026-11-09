@@ -9,6 +9,8 @@ import '../../features/admin/presentation/agenda_admin_controller.dart';
 import '../../features/admin/presentation/agenda_admin_page.dart';
 import '../../features/admin/presentation/agendamento_form_controller.dart';
 import '../../features/admin/presentation/agendamento_form_page.dart';
+import '../../features/admin/presentation/faturamento_controller.dart';
+import '../../features/admin/presentation/faturamento_page.dart';
 import '../../features/agendamento/data/agendamento_api.dart';
 import '../../features/agendamento/domain/agendamento_confirmado.dart';
 import '../../features/agendamento/presentation/agendamento_confirmado_page.dart';
@@ -127,6 +129,14 @@ GoRouter criarRouter(SessionController session, {String? localInicial}) {
         builder: (context, state) => ChangeNotifierProvider(
           create: (ctx) => AgendaAdminController(ctx.read<AdminAgendamentoApi>()),
           child: const AgendaAdminPage(),
+        ),
+      ),
+      GoRoute(
+        path: Rotas.adminFaturamento,
+        name: Rotas.nomeAdminFaturamento,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (ctx) => FaturamentoController(ctx.read<AdminAgendamentoApi>()),
+          child: const FaturamentoPage(),
         ),
       ),
       GoRoute(

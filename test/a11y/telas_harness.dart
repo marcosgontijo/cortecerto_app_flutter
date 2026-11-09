@@ -14,6 +14,9 @@ import 'package:cortecerto_flutter/features/admin/presentation/agenda_admin_cont
 import 'package:cortecerto_flutter/features/admin/presentation/agenda_admin_page.dart';
 import 'package:cortecerto_flutter/features/admin/presentation/agendamento_form_controller.dart';
 import 'package:cortecerto_flutter/features/admin/presentation/agendamento_form_page.dart';
+import 'package:cortecerto_flutter/features/admin/domain/faturamento.dart';
+import 'package:cortecerto_flutter/features/admin/presentation/faturamento_controller.dart';
+import 'package:cortecerto_flutter/features/admin/presentation/faturamento_page.dart';
 import 'package:cortecerto_flutter/features/agendamento/data/agendamento_api.dart';
 import 'package:cortecerto_flutter/features/agendamento/domain/agendamento_confirmado.dart';
 import 'package:cortecerto_flutter/features/agendamento/domain/status_agendamento.dart';
@@ -61,7 +64,7 @@ AgendamentoAdmin agAdmin(int id, String horario, StatusAgendamento status, Strin
       telefoneCliente: '11999990000',
     );
 
-/// As 10 telas da TAREFA (seção 3).
+/// As 10 telas da TAREFA (seção 3) + Faturamento (FASE 5).
 enum TelaF4 {
   login,
   cadastro,
@@ -73,6 +76,8 @@ enum TelaF4 {
   painelAdmin,
   agendaAdmin,
   formAdmin,
+  // FASE 5 (developer): entra sozinha nos grupos que percorrem TelaF4.values
+  faturamento,
 }
 
 /// Estados extras testados nos guidelines.
@@ -81,7 +86,48 @@ enum TelaF4 {
 /// Volta 4 (só formAdmin): `erroServicos` (servicosApi.listar falha), `vazioServicos` (lista vazia),
 /// `vazioHorarios` (disponibilidades devolve []).
 /// Volta 5 (só formAdmin): `erroClientes` (clientesApi.buscar falha depois de buscar 'mar').
-enum EstadoF4 { principal, inicial, erro, vazio, detalhes, erroServicos, vazioServicos, vazioHorarios, erroClientes }
+/// FASE 5 (só faturamento): `semana` e `mes` trocam o período depois de abrir (lista por dia com barras).
+enum EstadoF4 {
+  principal,
+  inicial,
+  erro,
+  vazio,
+  detalhes,
+  erroServicos,
+  vazioServicos,
+  vazioHorarios,
+  erroClientes,
+  semana,
+  mes,
+}
+
+/// Faturamento fake (FASE 5) para o período pedido: um dia com recebido, os outros zerados.
+Faturamento faturamentoFake(DateTime inicio, DateTime fim, {bool vazio = false}) {
+  final dias = <FaturamentoDia>[];
+  for (var d = inicio; !d.isAfter(fim); d = DateTime(d.year, d.month, d.day + 1)) {
+    final i = dias.length;
+    dias.add(FaturamentoDia(
+      data: d,
+      recebidoCentavos: vazio ? 0 : (i == 0 ? 123450 : (i == 1 ? 3500 : 0)),
+      previstoCentavos: i == 0 ? 5500 : 0,
+    ));
+  }
+  return Faturamento(
+    inicio: inicio,
+    fim: fim,
+    recebidoCentavos: vazio ? 0 : dias.fold(0, (s, d) => s + d.recebidoCentavos),
+    previstoCentavos: 5500,
+    quantidadeRealizados: vazio ? 0 : (dias.length > 1 ? 31 : 30),
+    quantidadePrevistos: 1,
+    porDia: dias,
+    porServico: vazio
+        ? const []
+        : const [
+            FaturamentoServico(servico: 'Corte + Barba', quantidade: 20, recebidoCentavos: 110000),
+            FaturamentoServico(servico: 'Corte Simples', quantidade: 11, recebidoCentavos: 16950),
+          ],
+  );
+}
 
 void registrarFallbacks() {
   registerFallbackValue(servicoTeste);
@@ -237,6 +283,44 @@ Future<Type> abrirTela(WidgetTester tester, TelaF4 tela,
       ]));
       await tester.pumpAndSettle();
       return AdminPage;
+
+    case TelaF4.faturamento:
+      final api = MockAdminAgendamentoApi();
+      if (estado == EstadoF4.erro) {
+        when(() => api.faturamento(any(), any())).thenThrow(semConexao);
+      } else {
+        when(() => api.faturamento(any(), any())).thenAnswer((i) async => faturamentoFake(
+            i.positionalArguments[0] as DateTime, i.positionalArguments[1] as DateTime,
+            vazio: estado == EstadoF4.vazio));
+      }
+      await tester.pumpWidget(comRouter(const FaturamentoPage(), providers: [
+        ChangeNotifierProvider<SessionController>.value(value: admin),
+        ChangeNotifierProvider(create: (_) => FaturamentoController(api, relogio: () => diaTeste)),
+      ]));
+      await tester.pumpAndSettle();
+      // confere que o estado pedido está MESMO na tela e o traz para dentro dela
+      // (a ListView é preguiçosa e os guidelines só avaliam o que está na tela)
+      Future<void> trazerParaATela(Finder f) async {
+        if (f.evaluate().isEmpty) {
+          final rolavel = find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down);
+          await tester.scrollUntilVisible(f, 200, scrollable: rolavel.first);
+        }
+        await tester.ensureVisible(f);
+        await tester.pumpAndSettle();
+        expect(f, findsOneWidget);
+      }
+
+      if (estado == EstadoF4.semana || estado == EstadoF4.mes) {
+        await tocarVisivel(tester, find.byKey(Key('faturamento-tipo-${estado == EstadoF4.semana ? 'semana' : 'mes'}')));
+        await trazerParaATela(find.byKey(const Key('faturamento-por-dia')));
+      } else {
+        await trazerParaATela(find.byKey(Key(switch (estado) {
+          EstadoF4.erro => 'faturamento-erro',
+          EstadoF4.vazio => 'faturamento-vazio',
+          _ => 'faturamento-recebido',
+        })));
+      }
+      return FaturamentoPage;
 
     case TelaF4.agendaAdmin:
     case TelaF4.formAdmin:

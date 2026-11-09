@@ -439,22 +439,92 @@ class _Horarios extends StatelessWidget {
           style: tema.bodyMedium?.copyWith(color: t.onSurfaceMuted),
         ),
         SizedBox(height: t.md - 4),
-        Wrap(
-          spacing: t.sm,
-          runSpacing: t.sm,
-          children: [
-            for (final h in gradeComLivres(controller.horarios))
-              _ChipHorario(
-                horario: h,
-                livre: livres.contains(h),
-                selecionado: controller.horarioSelecionado == h,
-                onSelecionar: controller.enviando ? null : () => controller.selecionarHorario(h),
-              ),
-          ],
+        // FASE 5: grade de colunas de largura igual que preenche a largura disponível.
+        // O número de colunas vem da largura do conteúdo mais largo do chip, medida com a
+        // fonte e a escala de texto atuais (menos colunas com texto grande, sem estourar).
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final horarios = gradeComLivres(controller.horarios);
+            final colunas = colunasDaGradeDeHorarios(context, constraints.maxWidth);
+            final linhas = <Widget>[];
+            for (var i = 0; i < horarios.length; i += colunas) {
+              linhas.add(Padding(
+                padding: EdgeInsets.only(top: i == 0 ? 0 : t.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var c = 0; c < colunas; c++) ...[
+                      if (c > 0) SizedBox(width: t.sm),
+                      Expanded(
+                        child: i + c < horarios.length
+                            ? _ChipHorario(
+                                horario: horarios[i + c],
+                                livre: livres.contains(horarios[i + c]),
+                                selecionado: controller.horarioSelecionado == horarios[i + c],
+                                onSelecionar: controller.enviando
+                                    ? null
+                                    : () => controller.selecionarHorario(horarios[i + c]),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
+              ));
+            }
+            return Column(
+              key: Key('grade-horarios-$colunas-colunas'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: linhas,
+            );
+          },
         ),
       ],
     );
   }
+}
+
+/// Espaço entre os chips da grade de horários (o mesmo `t.sm` usado na tela).
+const double _espacoGradeHorarios = 8;
+
+/// Tamanho do ícone dentro do chip de horário.
+const double _iconeChipHorario = 18;
+
+/// Quantas colunas cabem na grade de horários em [largura] (FASE 5).
+///
+/// Mede, com o `textScaler` atual, o conteúdo mais largo de um chip (ícone + horário na
+/// primeira linha; "Indisponível"/"Escolhido"/"Livre" na segunda) e soma o preenchimento
+/// do chip. Resultado entre 1 e 6 (com 24 horários, no máximo 6 por linha). Exemplo, com
+/// Roboto e texto a 100%: 3 colunas em 360 dp e 6 em 800 dp; a 200%, menos colunas.
+int colunasDaGradeDeHorarios(BuildContext context, double largura) {
+  final t = AppTokens.of(context);
+  final tema = Theme.of(context).textTheme;
+  final escala = MediaQuery.textScalerOf(context);
+  final direcao = Directionality.of(context);
+  double medir(String texto, TextStyle? estilo) {
+    final p = TextPainter(
+      text: TextSpan(text: texto, style: estilo),
+      textScaler: escala,
+      textDirection: direcao,
+      maxLines: 1,
+    )..layout();
+    final w = p.width;
+    p.dispose();
+    return w;
+  }
+
+  final linhaHorario = _iconeChipHorario + t.xs + medir('00:00', tema.labelLarge);
+  final linhaStatus = [
+    medir('Indisponível', tema.labelSmall),
+    medir('Escolhido', tema.labelSmall),
+    medir('Livre', tema.labelSmall),
+  ].reduce((a, b) => a > b ? a : b);
+  final conteudo = linhaHorario > linhaStatus ? linhaHorario : linhaStatus;
+  // padding horizontal do chip (t.xs / 2) dos dois lados + borda (1 de cada lado) + folga
+  final minimo = conteudo + t.xs + 2 + 2;
+  if (!largura.isFinite || largura <= 0) return 1;
+  final cabem = ((largura + _espacoGradeHorarios) / (minimo + _espacoGradeHorarios)).floor();
+  return cabem.clamp(1, 6);
 }
 
 /// Chip de horário (>= 48dp). Indisponível: desabilitado, com ícone e texto.
@@ -489,26 +559,35 @@ class _ChipHorario extends StatelessWidget {
       side: BorderSide(color: livre ? cs.outline : t.divider),
       backgroundColor: livre ? t.surfaceHigh : cs.surface,
       disabledColor: cs.surface,
-      padding: EdgeInsets.symmetric(horizontal: t.xs, vertical: t.sm - 2),
-      avatar: Icon(
-        !livre
-            ? Icons.block
-            : selecionado
-                ? Icons.check_circle
-                : Icons.schedule,
-        size: 18,
-        color: corIcone,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: t.xs / 2, vertical: t.sm - 2),
+      // FASE 5: o ícone fica na linha do horário (sem avatar), para o chip caber em colunas
+      // estreitas; a largura de cada chip é a da coluna da grade (todas iguais).
+      labelPadding: EdgeInsets.zero,
       label: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            horario,
-            style: tema.labelLarge?.copyWith(
-              color: livre ? cs.onSurface : t.onSurfaceMuted,
-              decoration: livre ? null : TextDecoration.lineThrough,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                !livre
+                    ? Icons.block
+                    : selecionado
+                        ? Icons.check_circle
+                        : Icons.schedule,
+                size: _iconeChipHorario,
+                color: corIcone,
+              ),
+              SizedBox(width: t.xs),
+              Text(
+                horario,
+                style: tema.labelLarge?.copyWith(
+                  color: livre ? cs.onSurface : t.onSurfaceMuted,
+                  decoration: livre ? null : TextDecoration.lineThrough,
+                ),
+              ),
+            ],
           ),
           Text(
             !livre
