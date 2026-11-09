@@ -1,0 +1,1 @@
+Volta 1: ENTREGUE — FASE 2 com todos os critérios cobertos (gate congelado exit 0: 128 testes Flutter, analyze limpo, 168 backend, contrato real OK), review aprovado; IMPORTANTE (notifyListeners após dispose) fica para o início da FASE 3.

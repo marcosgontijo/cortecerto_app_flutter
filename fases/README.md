@@ -3,8 +3,8 @@
 | Fase | Foco | Onde mexe | Gate |
 |---|---|---|---|
 | [FASE-1](FASE-1.md) | Backend seguro (BCrypt, JWT, validação, papéis, PII) e sem agendamento duplicado ✅ entregue (volta 2) | Backend | `./mvnw test` |
-| [FASE-2](FASE-2.md) | Base do app (go_router, sessão, ApiClient único, DI) + telas do cliente + seed de serviços | Flutter (+ 1 migration no backend) | `flutter analyze` + `flutter test` + `./mvnw test` + testes de contrato com o backend real |
-| [FASE-3](FASE-3.md) | CRUD de agendamentos do admin + "Meus Agendamentos" sempre atualizado | Backend + Flutter | os três |
+| [FASE-2](FASE-2.md) | Base do app (go_router, sessão, ApiClient único, DI) + telas do cliente + seed de serviços ✅ entregue (volta 1) | Flutter (+ 1 migration no backend) | `flutter analyze` + `flutter test` + `./mvnw test` + testes de contrato com o backend real |
+| [FASE-3](FASE-3.md) | Pendências da FASE 2 + CRUD de agendamentos do admin (Painel e Agenda Admin) + "Meus Agendamentos" sempre atualizado | Backend + Flutter | `./mvnw test` + `flutter analyze` + `flutter test` + contrato ponta a ponta (admin altera → cliente vê) |
 
 O loop sempre lê o `TAREFA.md` da raiz. **A fase ativa é a que está copiada lá.**
 
