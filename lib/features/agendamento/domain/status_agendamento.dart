@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_tokens.dart';
+
 /// Status de um agendamento no backend (`PENDENTE`, `CONFIRMADO`, `CANCELADO`, `REALIZADO`).
+/// A cor não fica no enum: vem do tema (ver [StatusAgendamentoVisual]).
 enum StatusAgendamento {
-  pendente('PENDENTE', 'Pendente', Color(0xFFFFC107), Colors.black),
-  confirmado('CONFIRMADO', 'Confirmado', Color(0xFF28A745), Colors.white),
-  cancelado('CANCELADO', 'Cancelado', Color(0xFFDC3545), Colors.white),
-  // Azul-petróleo para não confundir com o verde de "confirmado".
-  realizado('REALIZADO', 'Realizado', Color(0xFF17A2B8), Colors.white),
+  pendente('PENDENTE', 'Pendente'),
+  confirmado('CONFIRMADO', 'Confirmado'),
+  cancelado('CANCELADO', 'Cancelado'),
+  realizado('REALIZADO', 'Realizado'),
   // Valor que o app não conhece (ex.: status novo no backend). Não vira PENDENTE em silêncio:
   // aparece como "Desconhecido" e não ganha ações de status (Confirmar/Realizado).
-  desconhecido('DESCONHECIDO', 'Desconhecido', Color(0xFF6C757D), Colors.white);
+  desconhecido('DESCONHECIDO', 'Desconhecido');
 
-  const StatusAgendamento(this.api, this.rotulo, this.cor, this.corTexto);
+  const StatusAgendamento(this.api, this.rotulo);
 
   /// Valor usado na API.
   final String api;
 
   /// Texto para a tela.
   final String rotulo;
-  final Color cor;
-  final Color corTexto;
 
   /// Os quatro status reais do backend (filtros, contadores e escolha no formulário).
   static const List<StatusAgendamento> conhecidos = [pendente, confirmado, cancelado, realizado];
@@ -38,7 +38,28 @@ enum StatusAgendamento {
   }
 }
 
-/// "Etiqueta" colorida com o status.
+/// Parte visual do status (ícone e cor do tema), separada do valor da API.
+extension StatusAgendamentoVisual on StatusAgendamento {
+  /// Ícone do MASTER.md: o status nunca é indicado só pela cor.
+  IconData get icone => switch (this) {
+        StatusAgendamento.pendente => Icons.schedule,
+        StatusAgendamento.confirmado => Icons.check_circle,
+        StatusAgendamento.realizado => Icons.task_alt,
+        StatusAgendamento.cancelado => Icons.cancel,
+        StatusAgendamento.desconhecido => Icons.help_outline,
+      };
+
+  /// Cor do status vinda dos tokens do tema.
+  Color cor(AppTokens t) => switch (this) {
+        StatusAgendamento.pendente => t.warning,
+        StatusAgendamento.confirmado => t.success,
+        StatusAgendamento.realizado => t.info,
+        StatusAgendamento.cancelado => t.neutral,
+        StatusAgendamento.desconhecido => t.neutral,
+      };
+}
+
+/// Etiqueta do status: ícone + texto na cor do status, sobre `surfaceHigh`.
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.status});
 
@@ -46,15 +67,27 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppTokens.of(context);
+    final cor = status.cor(t);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: t.sm, vertical: t.xs),
       decoration: BoxDecoration(
-        color: status.cor,
-        borderRadius: BorderRadius.circular(12),
+        color: t.surfaceHigh,
+        border: Border.all(color: cor),
+        borderRadius: BorderRadius.circular(t.raioChip),
       ),
-      child: Text(
-        status.rotulo,
-        style: TextStyle(color: status.corTexto, fontSize: 12, fontWeight: FontWeight.bold),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(status.icone, size: 16, color: cor),
+          SizedBox(width: t.xs),
+          Flexible(
+            child: Text(
+              status.rotulo,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: cor),
+            ),
+          ),
+        ],
       ),
     );
   }

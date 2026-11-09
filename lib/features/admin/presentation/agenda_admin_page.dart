@@ -8,6 +8,10 @@ import '../../agendamento/domain/status_agendamento.dart';
 import '../domain/agendamento_admin.dart';
 import 'agenda_admin_controller.dart';
 import 'agendamento_form_controller.dart';
+import '../../../core/theme/app_tokens.dart';
+import '../../../core/widgets/dialogo_confirmacao.dart';
+import '../../../core/widgets/estados.dart';
+import '../../../core/widgets/feedback.dart';
 
 /// Agenda Admin (`/admin/agenda`): escolha do dia, grade 08:00–19:30, contadores,
 /// filtro por status, busca por nome, criar, detalhes e ações.
@@ -40,13 +44,7 @@ class _AgendaAdminPageState extends State<AgendaAdminPage> {
 
   void _avisar(String mensagem, {bool erro = false}) {
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(SnackBar(
-      key: Key(erro ? 'snack-erro' : 'snack-sucesso'),
-      content: Text(mensagem),
-      backgroundColor: erro ? Theme.of(context).colorScheme.error : null,
-    ));
+    mostrarFeedback(context, mensagem, erro: erro);
   }
 
   Future<void> _escolherData(AgendaAdminController c) async {
@@ -71,29 +69,6 @@ class _AgendaAdminPageState extends State<AgendaAdminPage> {
     await c.carregar();
   }
 
-  Future<bool> _confirmarDialogo(String titulo, String texto, String acao) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titulo),
-        content: Text(texto),
-        actions: [
-          TextButton(
-            key: const Key('dialogo-nao'),
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Voltar'),
-          ),
-          TextButton(
-            key: const Key('dialogo-sim'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(acao),
-          ),
-        ],
-      ),
-    );
-    return ok == true;
-  }
-
   Future<void> _executar(Future<ResultadoAcao> Function() acao) async {
     final r = await acao();
     _avisar(r.mensagem, erro: !r.sucesso);
@@ -115,15 +90,26 @@ class _AgendaAdminPageState extends State<AgendaAdminPage> {
       case _AcaoDetalhe.realizar:
         await _executar(() => c.marcarRealizado(a));
       case _AcaoDetalhe.cancelar:
-        if (await _confirmarDialogo('Cancelar agendamento',
-            'Cancelar o agendamento de ${a.nomeCliente} às ${a.horario}? O horário ficará livre.',
-            'Cancelar agendamento')) {
+        if (await confirmarAcao(
+          context,
+          titulo: 'Cancelar agendamento',
+          mensagem:
+              'Cancelar o agendamento de ${a.nomeCliente} às ${a.horario}? O horário ficará livre.',
+          rotuloConfirmar: 'Cancelar agendamento',
+          icone: Icons.event_busy,
+        )) {
           await _executar(() => c.cancelar(a));
         }
       case _AcaoDetalhe.excluir:
-        if (await _confirmarDialogo('Excluir agendamento',
-            'Excluir definitivamente o agendamento de ${a.nomeCliente} às ${a.horario}?',
-            'Excluir')) {
+        if (!mounted) return;
+        if (await confirmarAcao(
+          context,
+          titulo: 'Excluir agendamento',
+          mensagem:
+              'Excluir definitivamente o agendamento de ${a.nomeCliente} às ${a.horario}?',
+          rotuloConfirmar: 'Excluir',
+          icone: Icons.delete_outline,
+        )) {
           await _executar(() => c.excluir(a));
         }
     }
@@ -132,40 +118,43 @@ class _AgendaAdminPageState extends State<AgendaAdminPage> {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<AgendaAdminController>();
+    final t = AppTokens.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(_titulo(c), key: const Key('agenda-titulo')),
-        actions: [
-          IconButton(
-            key: const Key('botao-novo-agendamento'),
-            tooltip: 'Novo agendamento',
-            icon: const Icon(Icons.add),
-            onPressed: () => _abrirFormulario(AgendamentoFormArgs.criar(data: c.dia)),
-          ),
-        ],
+      ),
+      // Só ícone + tooltip: o texto "Novo agendamento" fica para o título do formulário.
+      floatingActionButton: FloatingActionButton(
+        key: const Key('botao-novo-agendamento'),
+        tooltip: 'Novo agendamento',
+        onPressed: () => _abrirFormulario(AgendamentoFormArgs.criar(data: c.dia)),
+        child: const Icon(Icons.add),
       ),
       body: RefreshIndicator(
         key: const Key('agenda-refresh'),
         onRefresh: c.carregar,
+        // A lista principal é o primeiro Scrollable da tela; período, filtros e busca
+        // ficam dentro dela. O espaço no fim deixa o último horário acima do FAB.
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.fromLTRB(t.md, t.md, t.md, 88),
           children: [
             _Periodo(controller: c, onData: () => _escolherData(c)),
-            const SizedBox(height: 8),
-            _FiltroStatus(controller: c),
-            const SizedBox(height: 8),
+            SizedBox(height: t.md - 4),
             TextField(
               key: const Key('campo-busca-agenda'),
+              textInputAction: TextInputAction.search,
               decoration: const InputDecoration(
-                hintText: 'Pesquisar cliente...',
+                labelText: 'Buscar cliente',
+                hintText: 'Nome do cliente',
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: c.buscar,
             ),
-            const SizedBox(height: 12),
-            _Resumo(controller: c),
-            const SizedBox(height: 12),
+            SizedBox(height: t.md - 4),
+            // Filtros logo acima da lista que eles filtram, com o contador do dia.
+            _FiltroStatus(controller: c),
+            SizedBox(height: t.md),
             ..._conteudo(c),
           ],
         ),
@@ -176,56 +165,40 @@ class _AgendaAdminPageState extends State<AgendaAdminPage> {
   List<Widget> _conteudo(AgendaAdminController c) {
     if (c.isLoading && !c.carregou) {
       return const [
-        Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(child: CircularProgressIndicator(key: Key('agenda-carregando'))),
-        ),
+        EstadoCarregando(mensagem: 'Carregando agenda', chaveIndicador: Key('agenda-carregando')),
       ];
     }
     if (c.erro != null) {
       return [
-        Column(
-          key: const Key('agenda-erro'),
-          children: [
-            Text(c.erro!, textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: c.carregar,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Tentar novamente'),
-              ),
-            ),
-          ],
-        ),
+        EstadoErro(key: const Key('agenda-erro'), mensagem: c.erro!, onTentarNovamente: c.carregar),
       ];
     }
+    // Espaço curto entre os itens: a grade inteira cabe em pouca rolagem.
+    Widget espaco(Widget w) => Padding(padding: const EdgeInsets.only(bottom: 6), child: w);
     if (c.temFiltro) {
       final lista = c.filtrados;
       if (lista.isEmpty) {
         return [
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              'Nenhum agendamento encontrado para ${Formatters.data(c.dia)}.',
-              key: const Key('agenda-vazia'),
-              textAlign: TextAlign.center,
-            ),
+          EstadoVazio(
+            key: const Key('agenda-vazia'),
+            icone: Icons.search_off,
+            titulo: 'Nada encontrado',
+            texto: 'Nenhum agendamento encontrado para ${Formatters.data(c.dia)}.',
           ),
         ];
       }
       return [
         for (final a in lista)
-          _CardAgendamento(
+          espaco(_CardAgendamento(
             key: Key('agendamento-${a.id}'),
             agendamento: a,
             onTap: () => _abrirDetalhes(a),
-          ),
+          )),
       ];
     }
     return [
       for (final s in c.slots)
-        s.disponivel
+        espaco(s.disponivel
             ? _SlotDisponivel(
                 key: Key('agenda-horario-${s.horario}'),
                 slot: s,
@@ -239,7 +212,7 @@ class _AgendaAdminPageState extends State<AgendaAdminPage> {
                 key: Key('agenda-horario-${s.horario}'),
                 agendamento: s.agendamento!,
                 onTap: () => _abrirDetalhes(s.agendamento!),
-              ),
+              )),
     ];
   }
 }
@@ -253,8 +226,10 @@ class _Periodo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
+    final t = AppTokens.of(context);
     return Wrap(
-      spacing: 8,
+      spacing: t.sm,
+      runSpacing: t.sm,
       children: [
         ChoiceChip(
           key: const Key('periodo-hoje'),
@@ -270,6 +245,7 @@ class _Periodo extends StatelessWidget {
         ),
         ChoiceChip(
           key: const Key('periodo-data'),
+          showCheckmark: false,
           avatar: const Icon(Icons.event, size: 18),
           label: Text(c.periodo == PeriodoAgenda.data ? Formatters.data(c.dia) : 'Data'),
           selected: c.periodo == PeriodoAgenda.data,
@@ -280,6 +256,8 @@ class _Periodo extends StatelessWidget {
   }
 }
 
+/// Chips de filtro por status; cada um mostra o contador do dia (o número puro fica num
+/// `Text` com Key `contador-<status>-valor`).
 class _FiltroStatus extends StatelessWidget {
   const _FiltroStatus({required this.controller});
 
@@ -288,25 +266,66 @@ class _FiltroStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
+    final t = AppTokens.of(context);
+    Widget chip({
+      required String chave,
+      required String chaveContador,
+      required String rotulo,
+      required int n,
+      required bool selecionado,
+      required VoidCallback onTap,
+      IconData? icone,
+      Color? corIcone,
+    }) {
+      return Padding(
+        padding: EdgeInsets.only(right: t.sm),
+        child: FilterChip(
+          key: Key('filtro-$chave'),
+          showCheckmark: false,
+          selected: selecionado,
+          onSelected: (_) => onTap(),
+          avatar: icone == null ? null : Icon(icone, size: 18, color: corIcone),
+          label: KeyedSubtree(
+            key: Key('contador-$chaveContador'),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(rotulo),
+                SizedBox(width: t.xs + 2),
+                Text(
+                  '$n',
+                  key: Key('contador-$chaveContador-valor'),
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          ChoiceChip(
-            key: const Key('filtro-todos'),
-            label: const Text('Todos'),
-            selected: c.filtroStatus == null,
-            onSelected: (_) => c.filtrarStatus(null),
+          chip(
+            chave: 'todos',
+            chaveContador: 'total',
+            rotulo: 'Todos',
+            n: c.total,
+            selecionado: c.filtroStatus == null,
+            onTap: () => c.filtrarStatus(null),
           ),
           for (final s in StatusAgendamento.conhecidos)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: ChoiceChip(
-                key: Key('filtro-${s.api}'),
-                label: Text(s.rotulo),
-                selected: c.filtroStatus == s,
-                onSelected: (_) => c.filtrarStatus(c.filtroStatus == s ? null : s),
-              ),
+            chip(
+              chave: s.api,
+              chaveContador: s.api,
+              rotulo: s.rotulo,
+              n: c.contar(s),
+              selecionado: c.filtroStatus == s,
+              icone: s.icone,
+              corIcone: s.cor(t),
+              onTap: () => c.filtrarStatus(c.filtroStatus == s ? null : s),
             ),
         ],
       ),
@@ -314,38 +333,8 @@ class _FiltroStatus extends StatelessWidget {
   }
 }
 
-class _Resumo extends StatelessWidget {
-  const _Resumo({required this.controller});
-
-  final AgendaAdminController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = controller;
-    Widget item(String chave, String rotulo, int n, Color? cor) => Expanded(
-          child: Card(
-            key: Key('contador-$chave'),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-              child: Column(
-                children: [
-                  Text('$n',
-                      key: Key('contador-$chave-valor'),
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cor)),
-                  FittedBox(child: Text(rotulo, style: const TextStyle(fontSize: 11))),
-                ],
-              ),
-            ),
-          ),
-        );
-    return Row(
-      children: [
-        item('total', 'Total', c.total, null),
-        for (final s in StatusAgendamento.conhecidos) item(s.api, '${s.rotulo}s', c.contar(s), s.cor),
-      ],
-    );
-  }
-}
+/// Largura da coluna do horário nos itens da grade (alinha os horários entre si).
+const double _larguraHorario = 64;
 
 class _SlotDisponivel extends StatelessWidget {
   const _SlotDisponivel({super.key, required this.slot, required this.onTap});
@@ -357,17 +346,32 @@ class _SlotDisponivel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final t = AppTokens.of(context);
+    final tema = Theme.of(context).textTheme;
     final n = slot.cancelados.length;
     final passou = onTap == null;
+    // Itens compactos (48dp de toque) para o admin ver mais horários de uma vez.
     return Card(
-      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+      color: passou ? cs.surfaceContainerLowest : cs.surface,
       child: ListTile(
         dense: true,
         enabled: !passou,
-        leading: Text(slot.horario, style: const TextStyle(fontWeight: FontWeight.bold)),
-        title: Text(passou ? 'Horário encerrado' : 'Disponível'),
-        subtitle: n == 0 ? null : Text(n == 1 ? '1 cancelado neste horário' : '$n cancelados neste horário'),
-        trailing: passou ? null : const Icon(Icons.add_circle_outline, key: Key('slot-adicionar')),
+        contentPadding: EdgeInsets.symmetric(horizontal: t.md),
+        leading: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: _larguraHorario - 16),
+          child: Text(slot.horario, style: tema.titleMedium, softWrap: false),
+        ),
+        title: Text(
+          passou ? 'Horário encerrado' : 'Disponível',
+          style: passou ? tema.bodyMedium : tema.bodyLarge?.copyWith(color: t.success),
+        ),
+        subtitle: n == 0
+            ? null
+            : Text(n == 1 ? '1 cancelado neste horário' : '$n cancelados neste horário'),
+        trailing: passou
+            ? null
+            : Icon(Icons.add_circle_outline, key: const Key('slot-adicionar'), color: cs.primary),
         onTap: onTap,
       ),
     );
@@ -383,17 +387,50 @@ class _CardAgendamento extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = agendamento;
+    final t = AppTokens.of(context);
+    final tema = Theme.of(context).textTheme;
+    final horario = Text(a.horario, style: tema.titleMedium, softWrap: false);
+    final pessoa = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(a.nomeCliente, style: tema.bodyLarge),
+        Text(a.servico, style: tema.bodyMedium?.copyWith(color: t.onSurfaceMuted)),
+      ],
+    );
+    // Com texto muito grande, empilha em vez de espremer numa linha só.
+    final empilhar = MediaQuery.textScalerOf(context).scale(16) > 16 * 1.3;
     return Card(
       shape: RoundedRectangleBorder(
-        side: BorderSide(color: a.status.cor, width: 2),
-        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: a.status.cor(t), width: 1.5),
+        borderRadius: BorderRadius.circular(t.raioCard),
       ),
-      child: ListTile(
-        leading: Text(a.horario, style: const TextStyle(fontWeight: FontWeight.bold)),
-        title: Text(a.nomeCliente),
-        subtitle: Text(a.servico),
-        trailing: StatusChip(status: a.status),
+      child: InkWell(
         onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: t.md, vertical: t.sm + 2),
+          child: empilhar
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    horario,
+                    pessoa,
+                    SizedBox(height: t.xs),
+                    StatusChip(status: a.status),
+                  ],
+                )
+              : Row(
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: _larguraHorario - 16),
+                      child: horario,
+                    ),
+                    SizedBox(width: t.md),
+                    Expanded(child: pessoa),
+                    SizedBox(width: t.sm),
+                    StatusChip(status: a.status),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -409,80 +446,107 @@ class _Detalhes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = agendamento;
+    final cs = Theme.of(context).colorScheme;
+    final t = AppTokens.of(context);
+    final tema = Theme.of(context).textTheme;
     final tel = (a.telefoneCliente ?? '').trim();
     void escolher(_AcaoDetalhe acao) => Navigator.of(context).pop(acao);
-    Widget linha(String rotulo, String valor, String chave) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Text.rich(
-            key: Key('detalhe-$chave'),
-            TextSpan(children: [
-              TextSpan(text: '$rotulo: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-              TextSpan(text: valor),
-            ]),
+    Widget linha(IconData icone, String rotulo, String valor, String chave) => Padding(
+          padding: EdgeInsets.symmetric(vertical: t.xs),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icone, size: 20, color: t.onSurfaceMuted),
+              SizedBox(width: t.sm + 4),
+              Expanded(
+                child: Text.rich(
+                  key: Key('detalhe-$chave'),
+                  TextSpan(children: [
+                    TextSpan(
+                      text: '$rotulo: ',
+                      style: tema.bodyLarge?.copyWith(color: t.onSurfaceMuted),
+                    ),
+                    TextSpan(text: valor, style: tema.bodyLarge),
+                  ]),
+                ),
+              ),
+            ],
           ),
         );
+    final destrutivo = OutlinedButton.styleFrom(
+      foregroundColor: cs.error,
+      side: BorderSide(color: cs.error),
+    );
     return SafeArea(
       child: SingleChildScrollView(
         key: const Key('detalhes-agendamento'),
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(t.lg, 0, t.lg, t.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Detalhes do agendamento',
-                style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            linha('Cliente', a.nomeCliente, 'cliente'),
-            linha('Telefone', tel.isEmpty ? 'Não informado' : tel, 'telefone'),
-            linha('Serviço', a.servico, 'servico'),
-            linha('Data', Formatters.data(a.data), 'data'),
-            linha('Horário', a.horario, 'horario'),
+            Text('Detalhes do agendamento', style: tema.titleLarge),
+            SizedBox(height: t.md - 4),
+            linha(Icons.person_outline, 'Cliente', a.nomeCliente, 'cliente'),
+            linha(Icons.phone_outlined, 'Telefone', tel.isEmpty ? 'Não informado' : tel, 'telefone'),
+            linha(Icons.content_cut, 'Serviço', a.servico, 'servico'),
+            linha(Icons.event_outlined, 'Data', Formatters.data(a.data), 'data'),
+            linha(Icons.schedule, 'Horário', a.horario, 'horario'),
+            SizedBox(height: t.xs),
             Row(children: [
-              const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
-              StatusChip(status: a.status),
+              Text('Status: ', style: tema.bodyLarge?.copyWith(color: t.onSurfaceMuted)),
+              Flexible(child: StatusChip(status: a.status)),
             ]),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  key: const Key('acao-editar'),
-                  onPressed: () => escolher(_AcaoDetalhe.editar),
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Editar'),
-                ),
-                if (a.status == StatusAgendamento.pendente)
-                  OutlinedButton.icon(
-                    key: const Key('acao-confirmar'),
-                    onPressed: () => escolher(_AcaoDetalhe.confirmar),
-                    icon: const Icon(Icons.check),
-                    label: const Text('Confirmar'),
-                  ),
-                if (a.status == StatusAgendamento.pendente || a.status == StatusAgendamento.confirmado)
-                  OutlinedButton.icon(
-                    key: const Key('acao-realizar'),
-                    onPressed: () => escolher(_AcaoDetalhe.realizar),
-                    icon: const Icon(Icons.done_all),
-                    label: const Text('Marcar como realizado'),
-                  ),
-                if (a.status != StatusAgendamento.cancelado)
-                  OutlinedButton.icon(
-                    key: const Key('acao-cancelar'),
-                    onPressed: () => escolher(_AcaoDetalhe.cancelar),
-                    icon: const Icon(Icons.cancel_outlined),
-                    label: const Text('Cancelar'),
-                  ),
-                OutlinedButton.icon(
-                  key: const Key('acao-excluir'),
-                  onPressed: () => escolher(_AcaoDetalhe.excluir),
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Excluir'),
-                ),
-              ],
+            SizedBox(height: t.lg),
+            // Ações do dia a dia.
+            if (a.status == StatusAgendamento.pendente) ...[
+              FilledButton.icon(
+                key: const Key('acao-confirmar'),
+                onPressed: () => escolher(_AcaoDetalhe.confirmar),
+                icon: const Icon(Icons.check),
+                label: const Text('Confirmar'),
+              ),
+              SizedBox(height: t.sm),
+            ],
+            if (a.status == StatusAgendamento.pendente ||
+                a.status == StatusAgendamento.confirmado) ...[
+              OutlinedButton.icon(
+                key: const Key('acao-realizar'),
+                onPressed: () => escolher(_AcaoDetalhe.realizar),
+                icon: const Icon(Icons.task_alt),
+                label: const Text('Marcar como realizado'),
+              ),
+              SizedBox(height: t.sm),
+            ],
+            OutlinedButton.icon(
+              key: const Key('acao-editar'),
+              onPressed: () => escolher(_AcaoDetalhe.editar),
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Editar'),
             ),
-            const SizedBox(height: 8),
+            // Ações destrutivas separadas, na cor de erro.
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: t.md - 4),
+              child: const Divider(height: 1),
+            ),
+            if (a.status != StatusAgendamento.cancelado) ...[
+              OutlinedButton.icon(
+                key: const Key('acao-cancelar'),
+                style: destrutivo,
+                onPressed: () => escolher(_AcaoDetalhe.cancelar),
+                icon: const Icon(Icons.event_busy),
+                label: const Text('Cancelar'),
+              ),
+              SizedBox(height: t.sm),
+            ],
+            OutlinedButton.icon(
+              key: const Key('acao-excluir'),
+              style: destrutivo,
+              onPressed: () => escolher(_AcaoDetalhe.excluir),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Excluir'),
+            ),
+            SizedBox(height: t.sm),
             TextButton(
               key: const Key('acao-fechar'),
               onPressed: () => Navigator.of(context).pop(),

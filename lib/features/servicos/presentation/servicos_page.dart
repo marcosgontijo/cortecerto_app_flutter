@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import '../../../core/formatters/formatters.dart';
 import '../../../core/router/rotas.dart';
 import '../../../core/session/session_controller.dart';
+import '../../../core/theme/app_tokens.dart';
+import '../../../core/widgets/cliente_navigation_bar.dart';
+import '../../../core/widgets/estados.dart';
 import '../../../core/widgets/logout_button.dart';
 import '../domain/servico.dart';
 import 'servicos_controller.dart';
@@ -30,94 +33,72 @@ class _ServicosPageState extends State<ServicosPage> {
     final controller = context.watch<ServicosController>();
     final nome = context.watch<SessionController>().usuario?.nome ?? '';
     final theme = Theme.of(context);
+    final t = AppTokens.of(context);
 
     return Scaffold(
+      // O título não repete o rótulo "Serviços" da barra inferior (que já indica a aba).
       appBar: AppBar(
-        title: const Text('Serviços'),
-        actions: [
-          IconButton(
-            key: const Key('botao-meus-agendamentos-appbar'),
-            tooltip: 'Meus agendamentos',
-            icon: const Icon(Icons.event_note),
-            onPressed: () => context.pushNamed(Rotas.nomeMeusAgendamentos),
-          ),
-          IconButton(
-            key: const Key('botao-produtos-appbar'),
-            tooltip: 'Produtos',
-            icon: const Icon(Icons.shopping_bag_outlined),
-            onPressed: () => context.pushNamed(Rotas.nomeProdutos),
-          ),
-          const LogoutButton(),
-        ],
+        title: const Text('Escolha seu serviço'),
+        actions: const [LogoutButton()],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      bottomNavigationBar: const ClienteNavigationBar(atual: DestinoCliente.servicos),
+      body: RefreshIndicator(
+        onRefresh: controller.carregarServicos,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.all(t.md),
           children: [
             Text(
               nome.isEmpty ? 'Olá!' : 'Olá, $nome!',
               key: const Key('saudacao'),
-              style: theme.textTheme.titleLarge,
-              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall,
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Selecione o serviço de hoje',
-              textAlign: TextAlign.center,
+            SizedBox(height: t.xs),
+            Text(
+              'Selecione o serviço que deseja agendar.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: t.onSurfaceMuted),
             ),
-            const SizedBox(height: 16),
-            Expanded(child: _conteudo(context, controller)),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const Key('botao-meus-agendamentos'),
-              onPressed: () => context.pushNamed(Rotas.nomeMeusAgendamentos),
-              icon: const Icon(Icons.event_note),
-              label: const Text('Meus agendamentos'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const Key('botao-produtos'),
-              onPressed: () => context.pushNamed(Rotas.nomeProdutos),
-              icon: const Icon(Icons.shopping_bag_outlined),
-              label: const Text('Ver produtos'),
-            ),
+            SizedBox(height: t.md),
+            ..._conteudo(context, controller),
           ],
         ),
       ),
     );
   }
 
-  Widget _conteudo(BuildContext context, ServicosController controller) {
+  List<Widget> _conteudo(BuildContext context, ServicosController controller) {
+    final t = AppTokens.of(context);
     if (controller.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const [EstadoCarregando(mensagem: 'Carregando serviços')];
     }
     if (controller.erro != null) {
-      return _Estado(
-        key: const Key('servicos-erro'),
-        icone: Icons.error_outline,
-        texto: controller.erro!,
-        acao: 'Tentar novamente',
-        onAcao: controller.carregarServicos,
-      );
+      return [
+        EstadoErro(
+          key: const Key('servicos-erro'),
+          mensagem: controller.erro!,
+          onTentarNovamente: controller.carregarServicos,
+        ),
+      ];
     }
     if (controller.isVazio) {
-      return _Estado(
-        key: const Key('servicos-vazio'),
-        icone: Icons.inbox_outlined,
-        texto: 'Nenhum serviço disponível no momento.',
-        acao: 'Tentar novamente',
-        onAcao: controller.carregarServicos,
-      );
+      return [
+        EstadoVazio(
+          key: const Key('servicos-vazio'),
+          icone: Icons.content_cut,
+          titulo: 'Nenhum serviço disponível',
+          texto: 'Nenhum serviço disponível no momento.',
+          rotuloAcao: 'Tentar novamente',
+          iconeAcao: Icons.refresh,
+          onAcao: controller.carregarServicos,
+        ),
+      ];
     }
-    return RefreshIndicator(
-      onRefresh: controller.carregarServicos,
-      child: ListView.separated(
-        itemCount: controller.servicos.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, i) => _ServicoCard(servico: controller.servicos[i]),
-      ),
-    );
+    return [
+      for (final s in controller.servicos) ...[
+        _ServicoCard(servico: s),
+        SizedBox(height: t.md - 4),
+      ],
+    ];
   }
 }
 
@@ -129,22 +110,72 @@ class _ServicoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final t = AppTokens.of(context);
+    final tema = Theme.of(context).textTheme;
+    void agendar() => context.pushNamed(Rotas.nomeAgendamento, extra: servico);
+    final descricao = (servico.descricao ?? '').trim();
     return Card(
       key: Key('servico-${servico.id}'),
-      color: cs.surface,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Icon(iconeDoServico(servico.tipoServico), color: cs.secondary, size: 32),
-        title: Text(
-          servico.tipoServico,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+      child: InkWell(
+        onTap: agendar,
+        child: Padding(
+          padding: EdgeInsets.all(t.md),
+          // stretch: o Wrap abaixo recebe a largura toda do card, para o
+          // spaceBetween levar o "Agendar" para a direita (MASTER.md).
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(t.sm + 2),
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(t.raioCampo),
+                    ),
+                    child: Icon(iconeDoServico(servico.tipoServico), color: cs.primary, size: 24),
+                  ),
+                  SizedBox(width: t.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(servico.tipoServico, style: tema.titleMedium),
+                        if (descricao.isNotEmpty) ...[
+                          SizedBox(height: t.xs),
+                          Text(
+                            servico.descricao!,
+                            style: tema.bodyMedium?.copyWith(color: t.onSurfaceMuted),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: t.md - 4),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: t.sm,
+                runSpacing: t.sm,
+                children: [
+                  Text(
+                    Formatters.precoTexto(servico.precoServico),
+                    style: tema.titleMedium?.copyWith(color: cs.primary),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: agendar,
+                    style: FilledButton.styleFrom(minimumSize: const Size(48, 48)),
+                    icon: const Icon(Icons.calendar_month_outlined, size: 20),
+                    label: const Text('Agendar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        subtitle: (servico.descricao ?? '').isEmpty ? null : Text(servico.descricao!),
-        trailing: Text(
-          Formatters.precoTexto(servico.precoServico),
-          style: TextStyle(color: cs.secondary, fontWeight: FontWeight.bold),
-        ),
-        onTap: () => context.pushNamed(Rotas.nomeAgendamento, extra: servico),
       ),
     );
   }
@@ -165,42 +196,5 @@ IconData iconeDoServico(String tipo) {
       return Icons.sentiment_satisfied;
     default:
       return Icons.content_cut;
-  }
-}
-
-class _Estado extends StatelessWidget {
-  const _Estado({
-    super.key,
-    required this.icone,
-    required this.texto,
-    required this.acao,
-    required this.onAcao,
-  });
-
-  final IconData icone;
-  final String texto;
-  final String acao;
-  final VoidCallback onAcao;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icone, size: 48),
-          const SizedBox(height: 12),
-          Text(texto, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: onAcao,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(acao),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

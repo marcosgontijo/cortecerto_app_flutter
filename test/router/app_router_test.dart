@@ -9,6 +9,7 @@ import 'package:cortecerto_flutter/features/auth/data/auth_api.dart';
 import 'package:cortecerto_flutter/features/auth/domain/auth_models.dart';
 import 'package:cortecerto_flutter/features/servicos/data/servicos_api.dart';
 import 'package:cortecerto_flutter/features/servicos/domain/servico.dart';
+import 'package:cortecerto_flutter/features/servicos/presentation/servicos_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -78,6 +79,9 @@ void main() {
     await abrir(tester, token: criarJwt(), local: '/admin');
     expect(find.text('Painel Admin'), findsNothing);
     expect(find.text('Serviços'), findsOneWidget);
+    // FASE 4: 'Serviços' também é rótulo da NavigationBar (presente em Meus e Produtos);
+    // a tela de destino passa a ser identificada pelo tipo.
+    expect(find.byType(ServicosPage), findsOneWidget);
   });
 
   testWidgets('login com sucesso navega por role; logout volta ao login', (tester) async {

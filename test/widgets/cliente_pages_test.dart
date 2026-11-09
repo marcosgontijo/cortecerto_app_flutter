@@ -120,7 +120,9 @@ void main() {
       await tester.tap(find.text('5').first);
       await tester.pumpAndSettle();
       verifyNever(() => api.disponibilidades(any()));
-      final botao = tester.widget<ElevatedButton>(find.byKey(const Key('botao-confirmar')));
+      // FASE 4: o botão virou BotaoPrimario (FilledButton dentro do widget com a Key).
+      final botao = tester.widget<ButtonStyleButton>(find.descendant(
+          of: find.byKey(const Key('botao-confirmar')), matching: find.bySubtype<ButtonStyleButton>()));
       expect(botao.onPressed, isNull);
     });
 
@@ -153,7 +155,11 @@ void main() {
       await tester.tap(find.byKey(const Key('botao-confirmar')));
       await tester.pumpAndSettle();
       expect(find.text(AgendamentoController.msgHorarioReservado), findsOneWidget);
-      expect(find.text('08:30'), findsNothing);
+      // FASE 4 (D1): a grade completa aparece; 08:30 deixa de ser oferecido (sem chip
+      // selecionável) e fica marcado como indisponível e desabilitado.
+      expect(find.byKey(const Key('horario-08:30')), findsNothing);
+      expect(tester.widget<ChoiceChip>(find.byKey(const Key('horario-indisponivel-08:30'))).onSelected,
+          isNull);
 
       when(() => api.agendar(
               data: any(named: 'data'), horario: any(named: 'horario'), servico: any(named: 'servico')))

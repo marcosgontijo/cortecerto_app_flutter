@@ -13,6 +13,8 @@ N=$(cat .loop/stop-count 2>/dev/null || echo 0)
 head -1 .loop/veredito.md 2>/dev/null | grep -q "STATUS: BLOQUEADO" && exit 0
 
 [ -f .loop/gate.frozen.sh ] || cp .loop/gate.sh .loop/gate.frozen.sh
+# Porta alternativa: o backend local da IDE costuma ocupar a 8080
+export GATE_PORTA="${GATE_PORTA:-18080}"
 if bash "$GATE" > .loop/gate.log 2>&1 && head -1 .loop/veredito.md 2>/dev/null | grep -q "STATUS: ENTREGUE"; then
   rm -f .loop/stop-count; exit 0           # deu certo: pode parar
 fi

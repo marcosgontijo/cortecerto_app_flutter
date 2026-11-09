@@ -1,93 +1,89 @@
-# Tarefa — FASE 3 de 3: CRUD de agendamentos do admin e visão do cliente
+# Tarefa — FASE 4: Redesign de UI/UX das telas do app
 
-> Plano completo em `fases/README.md`. **Pré-requisito:** FASES 1 e 2 entregues (resultados em `fases/resultado-1/` e `fases/resultado-2/`).
+> Plano completo em `fases/README.md`. **Pré-requisito:** FASES 1, 2 e 3 entregues (resultados em `fases/resultado-1..3/`).
+> **Design system:** `design-system/cortecerto/MASTER.md` (proposto pela skill `ui-ux-pro-max`). É a referência visual obrigatória desta fase.
 
 ## Repositórios envolvidos
 | Papel | Caminho (Windows) | Pode editar? |
 |---|---|---|
-| App mobile (este repo) | `C:\Users\Usuario\Documents\Projetos\Dev\Projetos\cortecerto_flutter` | **Sim** |
-| Backend Spring Boot (worktree, branch `loop/mobile-migration`) | `C:\Users\Usuario\Documents\Projetos\Dev\Projetos\cortecerto-backend-loop` | **Sim** (sem afrouxar nenhuma regra das FASES 1 e 2) |
-| Referência do web (Angular) | `cortecerto-backend-loop\web\cortecertoweb` (ver `components/agenda-admin` e `admin-panel`) | Não (somente leitura) |
-
-> No WSL, troque `C:\` por `/mnt/c/` e `\` por `/`.
+| App mobile (este repo) | `C:\Users\Usuario\Documents\Projetos\Dev\Projetos\cortecerto_flutter` | **Sim** (só camada visual, ver Restrições) |
+| Backend Spring Boot (worktree, branch `loop/mobile-migration`) | `C:\Users\Usuario\Documents\Projetos\Dev\Projetos\cortecerto-backend-loop` | **Não** nesta fase (só roda os testes no gate) |
+| Referência do web (Angular) | `cortecerto-backend-loop\web\cortecertoweb` | Não (somente leitura) |
 
 ## O que quero
-Dar ao admin um CRUD completo de agendamentos (backend + Painel Admin e Agenda Admin no app, inspirados na agenda do web) e garantir
-que o cliente sempre veja os dados atualizados depois das alterações do admin. Antes disso, fechar as pendências deixadas pela FASE 2.
-
-## Contrato atual (FASES 1 e 2, não quebrar)
-- Base `http://<host>:8080/api`. Login devolve `{token, id, name, role}`. Erros no formato `{status, message, errors?}`.
-- `POST /agendamento` (cliente do JWT), `GET /agendamento/disponibilidades?data=`, `GET /agendamento/{id}`, `PUT /agendamento/{id}/cancelar`,
-  `GET /agendamento/agenda/hoje` (ADMIN), `GET /clientes` e `/clientes/{id}` (ADMIN, CPF mascarado), `GET /servicos`.
-- Status: `PENDENTE`, `CONFIRMADO`, `CANCELADO`, `REALIZADO`. O índice único (data, horario) vale para todo agendamento **não CANCELADO**.
-- Regras de agenda: grade 08:00–19:30 de 30 em 30 min, nada no passado, 409 em conflito (inclusive concorrente).
+Refazer o visual e a usabilidade de todas as telas já existentes (Login, Cadastro, Serviços, Produtos, Agendamento, Confirmado,
+Meus Agendamentos, Painel Admin, Agenda Admin e formulário de agendamento do admin) seguindo o design system, **sem mudar regras
+de negócio, contrato com o backend nem rotas**. O objetivo é o usuário entender cada tela de primeira, errar menos e ter retorno
+claro de tudo o que faz.
 
 ## Critérios de aceite
 
-### 0. Pendências da FASE 2 (fazer primeiro)
-- [ ] Controllers não chamam `notifyListeners()` depois de descartados (guard ou mixin comum), com teste de sair da tela durante o carregamento sem exceção.
-- [ ] Tela Confirmado: o Voltar do Android leva para `/servicos` (`PopScope`), sem fechar o app.
-- [ ] `AuthInterceptor.isPublica` compara o path exato (não `endsWith`).
-- [ ] `Validators.senha` aceita só `[A-Za-z]` como letra, igual ao backend.
-- [ ] "Hoje" do calendário é recalculado (não fica velho depois da meia-noite); o teste de "ontem desabilitado" usa data fixa.
-- [ ] Teste `MigrationV5SeedServicosTest.migrationsAnterioresNaoForamAlteradas` renomeado ou validando checksum de verdade; `fromObject` padronizado.
+### 1. Tema e tokens
+- [ ] `lib/core/theme/` expõe os tokens do MASTER.md: `ColorScheme` escuro com as cores da tabela e um `ThemeExtension` (ex.: `AppStatusColors`
+      ou `AppTokens`) para `success`, `warning`, `info`, `neutral`, espaçamentos e raios. `TextTheme` com a escala do MASTER.md.
+- [ ] Temas de componente configurados no `ThemeData`: `FilledButton`, `OutlinedButton`, `TextButton`, `InputDecoration`, `Card`, `Chip`,
+      `AppBar`, `NavigationBar`, `SnackBar` (flutuante), `Dialog`, `FloatingActionButton`.
+- [ ] `StatusAgendamento` deixa de guardar `Color` fixa: a cor vem do tema; `StatusChip` mostra **ícone + texto** (ícones do MASTER.md).
+- [ ] Nenhum `Color(0x…)`, `Colors.<cor>` (exceto `Colors.transparent`) nem `TextStyle(fontSize: …)` em `lib/features/**`.
+      Nenhum emoji em `lib/` (inclusive comentários do tema).
+- [ ] Teste de unidade que calcula o contraste WCAG dos pares do MASTER.md a partir dos tokens reais: texto ≥ 4.5:1, `outline` ≥ 3:1.
 
-### 1. Backend: endpoints de admin (todos exigem role ADMIN; cliente → 403; sem token → 401)
-- [ ] **Listar por data:** `GET /agendamento/admin?data=AAAA-MM-DD[&status=...]` → lista ordenada por horário com `id, data, horario (HH:mm), status,
-      servicoId, servico, clienteId, nomeCliente, telefoneCliente` (telefone só nesta rota de admin; nenhum CPF, e-mail ou senha).
-- [ ] **Criar:** `POST /agendamento/admin` `{clienteId, servicoId, data, horario, status?}` → 201 com o agendamento. Status padrão `CONFIRMADO`.
-      Cliente ou serviço inexistente → 404/400; horário ocupado → 409; passado ou fora da grade → 400.
-- [ ] **Atualizar:** `PUT /agendamento/admin/{id}` `{servicoId?, data?, horario?, status?}` → 200. Novo horário ocupado por **outro** agendamento → 409
-      (manter o mesmo horário não é conflito). Reativar um CANCELADO num horário já ocupado → 409. id inexistente → 404.
-- [ ] **Cancelar:** `PUT /agendamento/{id}/cancelar` continua funcionando para o admin (qualquer agendamento) e libera o horário.
-- [ ] **Deletar:** `DELETE /agendamento/admin/{id}` → 204; id inexistente → 404. O horário fica livre.
-- [ ] **Buscar clientes:** `GET /clientes?busca=` (nome parcial, sem diferenciar maiúsculas, ou dígitos do CPF) → `{id, nome, cpf mascarado, telefone}`, no máximo 20.
-- [ ] Todas as regras de duplicidade, grade e passado das FASES 1 e 2 valem também para criar e atualizar pelo admin.
+### 2. Componentes comuns (`lib/core/widgets/`)
+- [ ] `EstadoCarregando`, `EstadoVazio` (ícone, título, texto, ação opcional) e `EstadoErro` (mensagem + "Tentar novamente" que chama o recarregar
+      do controller). Toda tela com lista ou carregamento usa os três.
+- [ ] Botão primário com estado de envio (indicador + desabilitado enquanto envia, sem toque duplo).
+- [ ] Diálogo de confirmação reutilizável para ações destrutivas (botão destrutivo na cor `error`).
 
-### 2. Backend: lado do cliente
-- [ ] `GET /agendamento/meus` → só os agendamentos do cliente do JWT (futuros e passados, mais recentes primeiro), com `id, data, horario, status, servico`.
-- [ ] O cliente pode cancelar **só** o próprio agendamento **futuro** e não cancelado (de outro cliente → 404; passado → 400).
-- [ ] Um agendamento deletado pelo admin não aparece mais em `/meus`; um alterado aparece com os dados novos.
+### 3. Telas
+- [ ] **Login / Cadastro:** cabeçalho com a marca CorteCerto, rótulos visíveis, ícones nos campos, máscara de CPF/telefone mantida, erro embaixo
+      do campo, mostrar/ocultar senha (com rótulo acessível), `textInputAction` next/done (o "done" do último campo envia), `autofillHints`,
+      botão com estado de envio, link claro entre Login e Cadastro. Erro do servidor em SnackBar ou bloco de erro visível perto do botão.
+- [ ] **Navegação do cliente:** `NavigationBar` inferior com Serviços, Meus agendamentos e Produtos, mantendo os paths atuais
+      (`Rotas.servicos`, `Rotas.meusAgendamentos`, `Rotas.produtos`) e o logout acessível em todas elas. Agendamento e Confirmado ficam fora da barra.
+- [ ] **Serviços:** cards com nome, preço (e duração, se a API já devolver) e ação "Agendar" clara; estados carregando/vazio/erro.
+- [ ] **Produtos:** lista em cards selecionáveis; barra inferior fixa (com `SafeArea`) com quantidade e total; a lista não fica escondida atrás da barra.
+- [ ] **Agendamento:** indicador de etapas (Data → Horário → Confirmar, com o serviço escolhido visível no topo); horários em grade de chips
+      ≥ 48dp, ocupados desabilitados e marcados também por texto/ícone (não só cor); resumo (serviço, data, horário, preço) antes de confirmar;
+      botão confirmar fixo embaixo, desabilitado até escolher horário; 409 mostra mensagem clara e recarrega os horários.
+- [ ] **Confirmado:** ícone de sucesso, resumo do agendamento, CTA primário "Ver meus agendamentos" e secundário "Voltar aos serviços".
+      O Voltar do Android continua indo para `/servicos`.
+- [ ] **Meus Agendamentos:** abas Próximos/Histórico mantidas, cards com data/horário em destaque e `StatusChip`; estado vazio por aba com ação
+      "Agendar um horário"; cancelar com o diálogo de confirmação e SnackBar de resultado.
+- [ ] **Painel Admin:** saudação e cards grandes com ícone (Agenda) seguindo o tema.
+- [ ] **Agenda Admin:** seletor Hoje/Amanhã/Data com `SegmentedButton` ou chips; contadores por status viram chips de filtro; grade com horários
+      livres claramente tocáveis ("Disponível" + ícone de adicionar) e ocupados com cliente, serviço e `StatusChip`; FAB "Novo agendamento";
+      detalhes em bottom sheet ou tela com ações agrupadas (destrutivas separadas e em `error`).
+- [ ] **Formulário de agendamento (admin):** mesmas regras de campo do Login/Cadastro; busca de cliente com estado vazio/carregando.
 
-### 3. App: Painel Admin e Agenda Admin
-- [ ] **Painel Admin** (`/admin`) substitui a tela provisória: saudação, card "Agenda" (leva a `/admin/agenda`) e logout. Os cards "Clientes" e
-      "Serviços" do web ficam de fora (FASE futura). Rotas `/admin/**` bloqueiam CLIENTE (redirect).
-- [ ] **Agenda Admin** (`/admin/agenda`): escolher Hoje, Amanhã ou uma data; grade 08:00–19:30 mostrando cada horário como ocupado (cliente,
-      serviço, status com cor) ou "Disponível"; contadores por status; filtro por status e busca por nome do cliente; pull-to-refresh.
-- [ ] **Criar:** tocar em um horário "Disponível" (ou no botão +) abre o formulário: buscar cliente, escolher serviço, data e horário livre
-      (via `disponibilidades`), status inicial.
-- [ ] **Detalhes e editar:** tocar em um agendamento abre os detalhes (cliente, telefone, serviço, data, horário, status) com as ações
-      Editar (data, horário, serviço, status), Confirmar (PENDENTE → CONFIRMADO), Marcar como realizado, Cancelar e Excluir.
-- [ ] Cancelar e Excluir pedem confirmação. Toda operação mostra feedback de sucesso ou erro (incluindo o 409 "horário ocupado") e a
-      agenda recarrega depois.
+### 4. Acessibilidade e usabilidade (verificado por teste)
+- [ ] Para cada tela acima, widget test com APIs fake que passa em `androidTapTargetGuideline`, `labeledTapTargetGuideline` e
+      `textContrastGuideline` (`expect(tester, meetsGuideline(...))`).
+- [ ] Para cada tela, widget test em 360×640 com `textScaler` 2.0 sem overflow nem exceção.
+- [ ] Botões só com ícone têm `tooltip` ou `Semantics(label:)`.
+- [ ] Com `disableAnimations: true` não há animação de transição de etapa/estado (teste em pelo menos uma tela que anima).
 
-### 4. App: Meus Agendamentos (cliente)
-- [ ] Tela `/meus-agendamentos`, acessível pela tela de Serviços e pela tela Confirmado, com as abas (ou seções) Próximos e Histórico e o status de cada um.
-- [ ] Os dados vêm sempre do servidor: a tela recarrega ao abrir, com pull-to-refresh e quando o app volta para o primeiro plano. Nada de cache local
-      que mostre dado velho.
-- [ ] O cliente pode cancelar o próprio agendamento futuro, com confirmação, e a lista atualiza.
-
-### 5. Qualidade
-- [ ] Backend: testes de integração para cada endpoint novo, incluindo 401, 403, 404, 409 e 400, e o caso "manter o mesmo horário ao editar".
-- [ ] App: widget tests da Agenda Admin (grade, filtros, criar, editar, confirmar, realizar, cancelar, excluir, erro 409) e de Meus Agendamentos
-      (lista, refresh, cancelar), com APIs fake. Testes de rota para `/admin/**` e `/meus-agendamentos`.
-- [ ] **Contrato ponta a ponta** (`test/contract/`, contra o backend real, com um admin de teste criado por `ADMIN_CPF`/`ADMIN_SENHA` no gate):
-      admin cria um agendamento para um cliente → cliente vê em `/meus` → admin edita horário e status → cliente vê os dados novos →
-      admin cancela → cliente vê CANCELADO → admin exclui → o agendamento some de `/meus`. Mais: CLIENTE em rota de admin → 403.
-- [ ] `./mvnw -B clean test`, `flutter analyze` (zero erros e warnings) e `flutter test` passando. Nenhum teste anterior enfraquecido.
+### 5. Sem regressão
+- [ ] Todos os testes das FASES 1–3 continuam passando. Nenhum teste removido ou enfraquecido; se um texto/estrutura mudar de propósito, o teste
+      é atualizado para o novo texto com a **mesma** verificação de comportamento. `Key`s usadas pelos testes atuais são mantidas.
+- [ ] Controllers, APIs, `ApiClient`, sessão, rotas (paths e redirects por papel) e contrato com o backend sem mudança de comportamento.
+- [ ] `flutter analyze` com zero erros e warnings, `flutter test` e `./mvnw -B clean test` (backend intocado) passando, mais os testes de contrato.
 
 ## Gate desta fase (orientação para o tester)
-Partir do gate da FASE 2 (`fases/resultado-2/gate.frozen.sh`) e acrescentar: variáveis de admin de teste ao subir o backend
-(`ADMIN_CPF` com CPF de teste válido e `ADMIN_SENHA` gerados no script, nunca versionados) e os testes de contrato da FASE 3.
-Manter todas as checagens estáticas da FASE 2.
+Partir de `fases/resultado-3/gate.frozen.sh` (backend + Flutter + contrato) e acrescentar checagens estáticas:
+`grep` sem `Color(0x`, `Colors\.` (exceto `transparent`) e `TextStyle(` com `fontSize` em `lib/features/`; sem emojis em `lib/`;
+`git -C <backend> status --porcelain` igual ao do início da fase (backend não editado). Manter todas as checagens das fases anteriores.
 
 ## Fora do escopo
-- Atualização em tempo real (push/WebSocket): a atualização é por recarregar, puxar ou voltar ao app.
-- CRUD de serviços, produtos e clientes pelo admin (cards "Clientes" e "Serviços" do web).
-- Pagamento, notificações e ajustes no web Angular.
+- Fontes personalizadas (a skill sugeriu Cormorant + Montserrat ou DM Sans): exigem baixar arquivos ou `google_fonts` (rede em tempo de execução).
+  Fica para quando os arquivos de fonte forem adicionados ao repo manualmente.
+- Tema claro (os tokens devem permitir isso depois, mas nesta fase só o escuro).
+- Telas novas, CRUD de serviços/produtos/clientes, logo/ilustrações novas, mudanças no backend ou no web.
 
 ## Restrições
-- Seguir os padrões das FASES 1 e 2 (backend: controller → service → repository + DTO + Flyway; app: `lib/core` + `lib/features`, Provider, DI por construtor, ApiClient único).
-- Não fazer commit nem push no backend.
-- **Java 21:** `export JAVA_HOME=/c/Users/Usuario/.jdks/corretto-21.0.11; export PATH="$JAVA_HOME/bin:$PATH"` (no WSL: `/mnt/c/...`). O `java` do PATH é o 8.
+- Mexer só em `lib/core/theme/`, `lib/core/widgets/`, `lib/features/**/presentation/*_page.dart` (e widgets de apresentação novos ao lado delas),
+  `status_agendamento.dart` (só a parte visual), `app.dart`/`app_router.dart` **apenas** para o tema e a `NavigationBar` (ShellRoute permitido,
+  sem mudar paths nem redirects) e `test/`.
+- Nenhum pacote novo no `pubspec.yaml` sem justificar no `.loop/dev.md`; nada que faça requisição de rede em tempo de execução além da API do app.
+- Padrões das fases anteriores: `lib/core` + `lib/features`, Provider, DI por construtor, ApiClient único.
+- Não fazer commit nem push no backend. **Java 21:** `export JAVA_HOME=/c/Users/Usuario/.jdks/corretto-21.0.11; export PATH="$JAVA_HOME/bin:$PATH"`.
 - No Windows, `flutter pub get` pode sair com código 1 por falta do Modo de Desenvolvedor (symlink); isso não é falha do código.

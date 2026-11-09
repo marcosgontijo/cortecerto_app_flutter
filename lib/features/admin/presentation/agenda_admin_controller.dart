@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/agenda/grade_atendimento.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/state/notificador_seguro.dart';
 import '../../agendamento/domain/status_agendamento.dart';
@@ -39,10 +40,7 @@ class AgendaAdminController extends ChangeNotifier with NotificadorSeguro {
   }
 
   /// Grade de atendimento (igual ao backend): 08:00 a 19:30, de 30 em 30 minutos.
-  static final List<String> grade = [
-    for (var m = 8 * 60; m <= 19 * 60 + 30; m += 30)
-      '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}',
-  ];
+  static final List<String> grade = gerarGradeAtendimento();
 
   final AdminAgendamentoApi _api;
   final DateTime Function() _relogio;

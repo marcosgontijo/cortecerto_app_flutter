@@ -285,7 +285,11 @@ void main() {
       expect(req.queryParameters['data'],
           '${hoje.year.toString().padLeft(4, '0')}-${hoje.month.toString().padLeft(2, '0')}-${hoje.day.toString().padLeft(2, '0')}');
       expect(find.text('17:30'), findsOneWidget);
-      expect(find.text('09:00'), findsNothing);
+      // FASE 4 (D1): só 17:30 é selecionável; 09:00 aparece como indisponível e desabilitado.
+      expect(find.byKey(const Key('horario-17:30')), findsOneWidget);
+      expect(find.byKey(const Key('horario-09:00')), findsNothing);
+      expect(tester.widget<ChoiceChip>(find.byKey(const Key('horario-indisponivel-09:00'))).onSelected,
+          isNull);
     });
 
     testWidgets('409 → aviso e NOVA chamada de disponibilidades (horário some)', (tester) async {
@@ -301,7 +305,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(backend.dispChamadas, 2);
       expect(find.textContaining('Horário acabou de ser reservado'), findsOneWidget);
-      expect(find.text('09:00'), findsNothing);
+      // FASE 4 (D1): 09:00 deixa de ser selecionável (indisponível e desabilitado).
+      expect(find.byKey(const Key('horario-09:00')), findsNothing);
+      expect(tester.widget<ChoiceChip>(find.byKey(const Key('horario-indisponivel-09:00'))).onSelected,
+          isNull);
       expect(find.text('09:30'), findsOneWidget);
       expect(session.isAutenticado, isTrue);
     });

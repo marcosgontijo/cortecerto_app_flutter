@@ -6,7 +6,9 @@ import 'package:cortecerto_flutter/core/router/rotas.dart';
 import 'package:cortecerto_flutter/core/session/session_controller.dart';
 import 'package:cortecerto_flutter/core/session/usuario.dart';
 import 'package:cortecerto_flutter/core/validators/validators.dart';
+import 'package:cortecerto_flutter/features/meus_agendamentos/presentation/meus_agendamentos_page.dart';
 import 'package:cortecerto_flutter/features/servicos/domain/servico.dart';
+import 'package:cortecerto_flutter/features/servicos/presentation/servicos_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -115,6 +117,9 @@ void main() {
         await abrir(tester, criarJwt(), r);
         expect(find.text('Painel Admin'), findsNothing, reason: r);
         expect(find.text('Serviços'), findsOneWidget, reason: r);
+        // FASE 4: o rótulo 'Serviços' se repete na NavigationBar das 3 telas do cliente;
+        // a tela de destino passa a ser identificada pelo tipo.
+        expect(find.byType(ServicosPage), findsOneWidget, reason: r);
       }
       verifyNever(() => adminApi.listar(any()));
     });
@@ -124,6 +129,9 @@ void main() {
       await tester.tap(find.byKey(const Key('botao-meus-agendamentos')));
       await tester.pumpAndSettle();
       expect(find.text('Meus agendamentos'), findsOneWidget);
+      // FASE 4: o texto também é rótulo da NavigationBar; confirma a tela pelo tipo.
+      expect(find.byType(MeusAgendamentosPage), findsOneWidget);
+      expect(find.byType(ServicosPage), findsNothing);
       verify(() => agendamentoApi.meus()).called(1);
       await tester.tap(find.byKey(const Key('botao-voltar')));
       await tester.pumpAndSettle();

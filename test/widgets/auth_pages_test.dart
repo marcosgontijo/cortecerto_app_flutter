@@ -61,7 +61,9 @@ void main() {
 
       verify(() => api.login(cpf: '52998224725', senha: 'abc12345')).called(1);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      final botao = tester.widget<ElevatedButton>(find.byKey(const Key('botao-entrar')));
+      // FASE 4: o botão virou BotaoPrimario (FilledButton dentro do widget com a Key).
+      final botao = tester.widget<ButtonStyleButton>(find.descendant(
+          of: find.byKey(const Key('botao-entrar')), matching: find.bySubtype<ButtonStyleButton>()));
       expect(botao.onPressed, isNull);
 
       completer.completeError(

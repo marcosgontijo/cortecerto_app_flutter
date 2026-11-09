@@ -4,6 +4,11 @@ import 'package:provider/provider.dart';
 
 import '../../../core/formatters/formatters.dart';
 import 'agendamento_form_controller.dart';
+import '../../../core/theme/app_tokens.dart';
+import '../../../core/widgets/blocos.dart';
+import '../../../core/widgets/botao_primario.dart';
+import '../../../core/widgets/estados.dart';
+import '../../agendamento/domain/status_agendamento.dart';
 
 /// Criar/editar agendamento do admin. Volta com `true` quando salvou.
 class AgendamentoFormPage extends StatefulWidget {
@@ -50,8 +55,7 @@ class _AgendamentoFormPageState extends State<AgendamentoFormPage> {
   @override
   Widget build(BuildContext context) {
     final c = context.watch<AgendamentoFormController>();
-    final cs = Theme.of(context).colorScheme;
-    final titulo = Theme.of(context).textTheme.titleMedium;
+    final t = AppTokens.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(c.editando ? 'Editar agendamento' : 'Novo agendamento')),
       body: SafeArea(
@@ -59,61 +63,76 @@ class _AgendamentoFormPageState extends State<AgendamentoFormPage> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(t.md),
                 children: [
-                  Text('Cliente', style: titulo),
-                  const SizedBox(height: 8),
-                  if (c.cliente != null)
-                    Text(
-                      c.cliente!.nome,
-                      key: const Key('form-cliente-selecionado'),
-                      style: TextStyle(color: cs.secondary, fontWeight: FontWeight.bold),
+                  const _Secao(icone: Icons.person_outline, titulo: 'Cliente'),
+                  if (c.cliente != null) ...[
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, color: t.success, size: 20),
+                        SizedBox(width: t.sm),
+                        Expanded(
+                          child: Text(
+                            c.cliente!.nome,
+                            key: const Key('form-cliente-selecionado'),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                      ],
                     ),
+                    SizedBox(height: t.sm),
+                  ],
                   if (!c.editando) ...[
-                    const SizedBox(height: 8),
                     TextField(
                       key: const Key('campo-busca-cliente'),
                       controller: _busca,
                       textInputAction: TextInputAction.search,
                       decoration: InputDecoration(
+                        labelText: 'Buscar cliente',
                         hintText: 'Nome ou CPF do cliente',
+                        prefixIcon: const Icon(Icons.person_search_outlined),
                         suffixIcon: IconButton(
                           key: const Key('botao-buscar-cliente'),
+                          tooltip: 'Buscar cliente',
                           icon: const Icon(Icons.search),
                           onPressed: () => c.buscarClientes(_busca.text),
                         ),
                       ),
                       onSubmitted: c.buscarClientes,
                     ),
-                    _ResultadoClientes(controller: c),
+                    _ResultadoClientes(
+                      controller: c,
+                      onTentarNovamente: () => c.buscarClientes(_busca.text),
+                    ),
                   ],
-                  const SizedBox(height: 16),
-                  Text('Serviço', style: titulo),
-                  const SizedBox(height: 8),
+                  SizedBox(height: t.lg),
+                  const _Secao(icone: Icons.content_cut, titulo: 'Serviço'),
                   _Servicos(controller: c),
-                  const SizedBox(height: 16),
-                  Text('Data', style: titulo),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    key: const Key('form-botao-data'),
-                    onPressed: c.salvando ? null : () => _escolherData(c),
-                    icon: const Icon(Icons.event),
-                    label: Text(Formatters.data(c.data)),
+                  SizedBox(height: t.lg),
+                  const _Secao(icone: Icons.event_outlined, titulo: 'Data'),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      key: const Key('form-botao-data'),
+                      onPressed: c.salvando ? null : () => _escolherData(c),
+                      icon: const Icon(Icons.edit_calendar_outlined),
+                      label: Text(Formatters.data(c.data)),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  Text('Horário', style: titulo),
-                  const SizedBox(height: 8),
+                  SizedBox(height: t.lg),
+                  const _Secao(icone: Icons.schedule, titulo: 'Horário'),
                   _Horarios(controller: c),
-                  const SizedBox(height: 16),
-                  Text('Status', style: titulo),
-                  const SizedBox(height: 8),
+                  SizedBox(height: t.lg),
+                  const _Secao(icone: Icons.flag_outlined, titulo: 'Status'),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: t.sm,
+                    runSpacing: t.sm,
                     children: [
                       for (final s in c.statusDisponiveis)
                         ChoiceChip(
                           key: Key('form-status-${s.api}'),
+                          showCheckmark: false,
+                          avatar: Icon(s.icone, size: 18, color: s.cor(t)),
                           label: Text(s.rotulo),
                           selected: c.status == s,
                           onSelected: (_) => c.selecionarStatus(s),
@@ -123,30 +142,31 @@ class _AgendamentoFormPageState extends State<AgendamentoFormPage> {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (c.erroSalvar != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        c.erroSalvar!,
-                        key: const Key('form-erro'),
-                        style: TextStyle(color: cs.error, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
+            // CTA fixo fora da rolagem.
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: t.surfaceHigh,
+                border: Border(top: BorderSide(color: t.divider)),
+              ),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(t.md, t.md - 4, t.md, t.md - 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (c.erroSalvar != null) ...[
+                      BlocoErro(key: const Key('form-erro'), texto: c.erroSalvar!),
+                      SizedBox(height: t.sm),
+                    ],
+                    BotaoPrimario(
+                      key: const Key('form-botao-salvar'),
+                      rotulo: c.editando ? 'Salvar alterações' : 'Criar agendamento',
+                      icone: Icons.check,
+                      enviando: c.salvando,
+                      onPressed: c.podeSalvar ? () => _salvar(c) : null,
                     ),
-                  ElevatedButton(
-                    key: const Key('form-botao-salvar'),
-                    onPressed: c.podeSalvar ? () => _salvar(c) : null,
-                    child: c.salvando
-                        ? const SizedBox(
-                            height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text(c.editando ? 'Salvar alterações' : 'Criar agendamento'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -156,30 +176,57 @@ class _AgendamentoFormPageState extends State<AgendamentoFormPage> {
   }
 }
 
+/// Título de seção do formulário (ícone + texto).
+class _Secao extends StatelessWidget {
+  const _Secao({required this.icone, required this.titulo});
+
+  final IconData icone;
+  final String titulo;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppTokens.of(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: t.sm),
+      child: Row(
+        children: [
+          Icon(icone, size: 20, color: Theme.of(context).colorScheme.primary),
+          SizedBox(width: t.sm),
+          Text(titulo, style: Theme.of(context).textTheme.titleMedium),
+        ],
+      ),
+    );
+  }
+}
+
 class _ResultadoClientes extends StatelessWidget {
-  const _ResultadoClientes({required this.controller});
+  const _ResultadoClientes({required this.controller, required this.onTentarNovamente});
 
   final AgendamentoFormController controller;
+
+  /// Repete a busca com o termo que está no campo.
+  final VoidCallback onTentarNovamente;
 
   @override
   Widget build(BuildContext context) {
     final c = controller;
+    final t = AppTokens.of(context);
     if (c.buscandoClientes) {
-      return const Padding(
-        padding: EdgeInsets.all(8),
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const EstadoCarregando(mensagem: 'Buscando clientes');
     }
     if (c.erroClientes != null) {
-      return Padding(
-        padding: const EdgeInsets.all(8),
-        child: Text(c.erroClientes!, key: const Key('form-erro-clientes')),
+      return EstadoErro(
+        key: const Key('form-erro-clientes'),
+        mensagem: c.erroClientes!,
+        onTentarNovamente: onTentarNovamente,
       );
     }
     if (c.buscouClientes && c.clientes.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(8),
-        child: Text('Nenhum cliente encontrado.', key: Key('form-clientes-vazio')),
+      return const EstadoVazio(
+        key: Key('form-clientes-vazio'),
+        icone: Icons.person_off_outlined,
+        titulo: 'Nenhum cliente encontrado.',
+        texto: 'Confira o nome ou o CPF e busque de novo.',
       );
     }
     return Column(
@@ -187,8 +234,8 @@ class _ResultadoClientes extends StatelessWidget {
         for (final cli in c.clientes)
           ListTile(
             key: Key('form-cliente-${cli.id}'),
-            dense: true,
             selected: c.cliente == cli,
+            contentPadding: EdgeInsets.symmetric(horizontal: t.sm),
             leading: Icon(c.cliente == cli ? Icons.radio_button_checked : Icons.radio_button_off),
             title: Text(cli.nome),
             subtitle: Text([cli.cpf, cli.telefone].whereType<String>().join(' · ')),
@@ -207,11 +254,29 @@ class _Servicos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    if (c.carregandoServicos) return const LinearProgressIndicator();
-    if (c.erroServicos != null) return Text(c.erroServicos!, key: const Key('form-erro-servicos'));
+    final t = AppTokens.of(context);
+    if (c.carregandoServicos) {
+      return const EstadoCarregando(mensagem: 'Carregando serviços');
+    }
+    if (c.erroServicos != null) {
+      // iniciar() é o recarregar público do controller (serviços + horários).
+      return EstadoErro(
+        key: const Key('form-erro-servicos'),
+        mensagem: c.erroServicos!,
+        onTentarNovamente: c.iniciar,
+      );
+    }
+    if (c.servicos.isEmpty) {
+      return const EstadoVazio(
+        key: Key('form-servicos-vazio'),
+        icone: Icons.content_cut,
+        titulo: 'Nenhum serviço cadastrado.',
+        texto: 'Cadastre um serviço para poder agendar.',
+      );
+    }
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: t.sm,
+      runSpacing: t.sm,
       children: [
         for (final s in c.servicos)
           ChoiceChip(
@@ -233,21 +298,28 @@ class _Horarios extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    if (c.carregandoHorarios) return const LinearProgressIndicator();
+    final t = AppTokens.of(context);
+    if (c.carregandoHorarios) {
+      return const EstadoCarregando(mensagem: 'Carregando horários');
+    }
     if (c.erroHorarios != null) {
-      return Row(
-        children: [
-          Expanded(child: Text(c.erroHorarios!, key: const Key('form-erro-horarios'))),
-          TextButton(onPressed: c.carregarHorarios, child: const Text('Tentar novamente')),
-        ],
+      return EstadoErro(
+        key: const Key('form-erro-horarios'),
+        mensagem: c.erroHorarios!,
+        onTentarNovamente: c.carregarHorarios,
       );
     }
     if (c.horarios.isEmpty) {
-      return const Text('Nenhum horário livre nesta data.', key: Key('form-horarios-vazio'));
+      return const EstadoVazio(
+        key: Key('form-horarios-vazio'),
+        icone: Icons.event_busy_outlined,
+        titulo: 'Nenhum horário livre nesta data.',
+        texto: 'Escolha outra data.',
+      );
     }
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: t.sm,
+      runSpacing: t.sm,
       children: [
         for (final h in c.horarios)
           ChoiceChip(
