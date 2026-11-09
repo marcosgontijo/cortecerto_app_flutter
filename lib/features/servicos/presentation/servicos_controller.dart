@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/state/notificador_seguro.dart';
+
 import '../../../core/errors/api_exception.dart';
 import '../data/servicos_api.dart';
 import '../domain/servico.dart';
 
-class ServicosController extends ChangeNotifier {
+class ServicosController extends ChangeNotifier with NotificadorSeguro {
   ServicosController(this._api);
 
   final ServicosApi _api;
@@ -30,7 +32,7 @@ class ServicosController extends ChangeNotifier {
       _servicos = await _api.listar();
       _carregou = true;
     } catch (e) {
-      _erro = ApiErrorMapper.fromObject(e).mensagem;
+      _erro = ApiErrorMapper.deErro(e).mensagem;
     } finally {
       _isLoading = false;
       notifyListeners();

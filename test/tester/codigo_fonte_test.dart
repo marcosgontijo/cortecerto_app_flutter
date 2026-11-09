@@ -50,11 +50,11 @@ void main() {
 
   test('ApiClient( e APIs só são instanciados no app.dart (composição)', () {
     final achados = _ocorrencias(
-            lib, RegExp(r'(?<![A-Za-z0-9_])(ApiClient|AuthApi|ServicosApi|AgendamentoApi|TokenStorage)\s*\('))
+            lib, RegExp(r'(?<![A-Za-z0-9_])(ApiClient|AuthApi|ServicosApi|AgendamentoApi|AdminAgendamentoApi|ClientesApi|TokenStorage)\s*\('))
         .where((l) =>
             !l.startsWith('lib/app.dart') &&
             // declaração do próprio construtor
-            !RegExp(r':\d+: (ApiClient|AuthApi|ServicosApi|AgendamentoApi|TokenStorage)\(').hasMatch(l))
+            !RegExp(r':\d+: (ApiClient|AuthApi|ServicosApi|AgendamentoApi|AdminAgendamentoApi|ClientesApi|TokenStorage)\(').hasMatch(l))
         .toList();
     expect(achados, isEmpty, reason: achados.join('\n'));
   });

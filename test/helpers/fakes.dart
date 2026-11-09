@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cortecerto_flutter/core/session/token_storage.dart';
+import 'package:cortecerto_flutter/features/admin/data/admin_agendamento_api.dart';
+import 'package:cortecerto_flutter/features/admin/data/clientes_api.dart';
 import 'package:cortecerto_flutter/features/agendamento/data/agendamento_api.dart';
 import 'package:cortecerto_flutter/features/auth/data/auth_api.dart';
 import 'package:cortecerto_flutter/features/servicos/data/servicos_api.dart';
@@ -14,6 +16,10 @@ class MockAuthApi extends Mock implements AuthApi {}
 class MockServicosApi extends Mock implements ServicosApi {}
 
 class MockAgendamentoApi extends Mock implements AgendamentoApi {}
+
+class MockAdminAgendamentoApi extends Mock implements AdminAgendamentoApi {}
+
+class MockClientesApi extends Mock implements ClientesApi {}
 
 /// TokenStorage em memória (sem plugin), registrando as chamadas.
 class FakeTokenStorage extends TokenStorage {

@@ -9,6 +9,8 @@ import 'core/router/app_router.dart';
 import 'core/session/session_controller.dart';
 import 'core/session/token_storage.dart';
 import 'core/theme/app_theme.dart';
+import 'features/admin/data/admin_agendamento_api.dart';
+import 'features/admin/data/clientes_api.dart';
 import 'features/agendamento/data/agendamento_api.dart';
 import 'features/auth/data/auth_api.dart';
 import 'features/servicos/data/servicos_api.dart';
@@ -20,6 +22,8 @@ class AppDependencies {
     required this.authApi,
     required this.servicosApi,
     required this.agendamentoApi,
+    required this.adminAgendamentoApi,
+    required this.clientesApi,
   });
 
   factory AppDependencies.criar({
@@ -39,6 +43,8 @@ class AppDependencies {
       authApi: AuthApi(client),
       servicosApi: ServicosApi(client),
       agendamentoApi: AgendamentoApi(client),
+      adminAgendamentoApi: AdminAgendamentoApi(client),
+      clientesApi: ClientesApi(client),
     );
   }
 
@@ -46,6 +52,8 @@ class AppDependencies {
   final AuthApi authApi;
   final ServicosApi servicosApi;
   final AgendamentoApi agendamentoApi;
+  final AdminAgendamentoApi adminAgendamentoApi;
+  final ClientesApi clientesApi;
 }
 
 class CorteCertoApp extends StatefulWidget {
@@ -84,6 +92,8 @@ class _CorteCertoAppState extends State<CorteCertoApp> {
         Provider<AuthApi>.value(value: deps.authApi),
         Provider<ServicosApi>.value(value: deps.servicosApi),
         Provider<AgendamentoApi>.value(value: deps.agendamentoApi),
+        Provider<AdminAgendamentoApi>.value(value: deps.adminAgendamentoApi),
+        Provider<ClientesApi>.value(value: deps.clientesApi),
       ],
       child: MaterialApp.router(
         title: 'Corte Certo',

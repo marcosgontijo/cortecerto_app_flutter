@@ -57,7 +57,7 @@ class ApiErrorMapper {
       'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
   static const msgDesconhecido = 'Erro inesperado. Tente novamente.';
 
-  static ApiException fromObject(Object erro) {
+  static ApiException deErro(Object erro) {
     if (erro is ApiException) return erro;
     if (erro is DioException) return deDioException(erro);
     return const ApiException(

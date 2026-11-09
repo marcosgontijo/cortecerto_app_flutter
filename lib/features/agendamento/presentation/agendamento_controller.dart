@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/state/notificador_seguro.dart';
+
 import '../../../core/errors/api_exception.dart';
 import '../../servicos/domain/servico.dart';
 import '../data/agendamento_api.dart';
 import '../domain/agendamento_confirmado.dart';
 
-class AgendamentoController extends ChangeNotifier {
+class AgendamentoController extends ChangeNotifier with NotificadorSeguro {
   AgendamentoController(this._api);
 
   static const msgHorarioReservado =
@@ -72,7 +74,7 @@ class AgendamentoController extends ChangeNotifier {
         horario: horario,
       );
     } catch (e) {
-      final erro = ApiErrorMapper.fromObject(e);
+      final erro = ApiErrorMapper.deErro(e);
       if (erro.tipo == ApiErrorTipo.conflito) {
         _aviso = msgHorarioReservado;
         _horario = null;
@@ -102,7 +104,7 @@ class AgendamentoController extends ChangeNotifier {
       _horarios = horarios;
     } catch (e) {
       if (requisicao != _requisicao) return;
-      _erroHorarios = ApiErrorMapper.fromObject(e).mensagem;
+      _erroHorarios = ApiErrorMapper.deErro(e).mensagem;
     } finally {
       if (requisicao == _requisicao) {
         _carregandoHorarios = false;

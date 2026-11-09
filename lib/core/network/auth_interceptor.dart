@@ -20,7 +20,7 @@ class AuthInterceptor extends Interceptor {
 
   static bool isPublica(String path) {
     final semQuery = path.split('?').first;
-    return rotasPublicas.any((r) => semQuery == r || semQuery.endsWith(r));
+    return rotasPublicas.contains(semQuery);
   }
 
   @override

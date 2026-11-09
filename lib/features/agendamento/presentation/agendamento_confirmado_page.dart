@@ -14,7 +14,14 @@ class AgendamentoConfirmadoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
+    // A pilha só tem esta tela (chegamos com goNamed): o Voltar do Android leva aos
+    // serviços em vez de fechar o app.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.goNamed(Rotas.nomeServicos);
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Agendamento confirmado'),
         automaticallyImplyLeading: false,
@@ -53,9 +60,17 @@ class AgendamentoConfirmadoPage extends StatelessWidget {
                 onPressed: () => context.goNamed(Rotas.nomeServicos),
                 child: const Text('Voltar aos serviços'),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                key: const Key('botao-meus-agendamentos'),
+                onPressed: () => context.goNamed(Rotas.nomeMeusAgendamentos),
+                icon: const Icon(Icons.event_note),
+                label: const Text('Meus agendamentos'),
+              ),
             ],
           ),
         ),
+      ),
       ),
     );
   }

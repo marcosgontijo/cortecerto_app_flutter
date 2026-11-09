@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/state/notificador_seguro.dart';
+
 import '../domain/produto.dart';
 
 /// Seleção múltipla de produtos e total. Sem compra/checkout (o web também não tem).
-class ProdutosController extends ChangeNotifier {
+class ProdutosController extends ChangeNotifier with NotificadorSeguro {
   ProdutosController({List<Produto> catalogo = catalogoProdutos})
       : produtos = List.unmodifiable(catalogo);
 

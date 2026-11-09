@@ -43,12 +43,12 @@ class Validators {
     return null;
   }
 
-  /// Senha com no mínimo 8 caracteres, pelo menos uma letra e um número.
+  /// Senha com no mínimo 8 caracteres, pelo menos uma letra (A-Z, sem acento, igual ao backend) e um número.
   static String? senha(String? valor) {
     final v = valor ?? '';
     if (v.isEmpty) return 'Informe a senha';
     if (v.length < 8) return 'A senha deve ter no mínimo 8 caracteres';
-    if (!RegExp(r'[A-Za-zÀ-ÿ]').hasMatch(v) || !RegExp(r'\d').hasMatch(v)) {
+    if (!RegExp(r'[A-Za-z]').hasMatch(v) || !RegExp(r'\d').hasMatch(v)) {
       return 'A senha deve ter letras e números';
     }
     return null;

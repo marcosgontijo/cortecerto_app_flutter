@@ -36,6 +36,12 @@ class _ServicosPageState extends State<ServicosPage> {
         title: const Text('Serviços'),
         actions: [
           IconButton(
+            key: const Key('botao-meus-agendamentos-appbar'),
+            tooltip: 'Meus agendamentos',
+            icon: const Icon(Icons.event_note),
+            onPressed: () => context.pushNamed(Rotas.nomeMeusAgendamentos),
+          ),
+          IconButton(
             key: const Key('botao-produtos-appbar'),
             tooltip: 'Produtos',
             icon: const Icon(Icons.shopping_bag_outlined),
@@ -62,6 +68,13 @@ class _ServicosPageState extends State<ServicosPage> {
             ),
             const SizedBox(height: 16),
             Expanded(child: _conteudo(context, controller)),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('botao-meus-agendamentos'),
+              onPressed: () => context.pushNamed(Rotas.nomeMeusAgendamentos),
+              icon: const Icon(Icons.event_note),
+              label: const Text('Meus agendamentos'),
+            ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               key: const Key('botao-produtos'),

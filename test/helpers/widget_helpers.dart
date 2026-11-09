@@ -31,6 +31,18 @@ Widget comRouter(Widget pagina, {required List<SingleChildWidget> providers}) {
       ),
       GoRoute(path: Rotas.produtos, name: Rotas.nomeProdutos, builder: (_, _) => stub('produtos')),
       GoRoute(path: Rotas.admin, name: Rotas.nomeAdmin, builder: (_, _) => stub('admin')),
+      GoRoute(
+          path: Rotas.adminAgenda, name: Rotas.nomeAdminAgenda, builder: (_, _) => stub('agenda')),
+      GoRoute(
+        path: Rotas.adminAgendamentoForm,
+        name: Rotas.nomeAdminAgendamentoForm,
+        builder: (_, _) => stub('form'),
+      ),
+      GoRoute(
+        path: Rotas.meusAgendamentos,
+        name: Rotas.nomeMeusAgendamentos,
+        builder: (_, _) => stub('meus'),
+      ),
     ],
   );
   return MultiProvider(

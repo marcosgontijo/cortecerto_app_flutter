@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../features/admin/data/admin_agendamento_api.dart';
+import '../../features/admin/data/clientes_api.dart';
 import '../../features/admin/presentation/admin_page.dart';
+import '../../features/admin/presentation/agenda_admin_controller.dart';
+import '../../features/admin/presentation/agenda_admin_page.dart';
+import '../../features/admin/presentation/agendamento_form_controller.dart';
+import '../../features/admin/presentation/agendamento_form_page.dart';
 import '../../features/agendamento/data/agendamento_api.dart';
 import '../../features/agendamento/domain/agendamento_confirmado.dart';
 import '../../features/agendamento/presentation/agendamento_confirmado_page.dart';
@@ -13,6 +19,8 @@ import '../../features/auth/presentation/cadastro_controller.dart';
 import '../../features/auth/presentation/cadastro_page.dart';
 import '../../features/auth/presentation/login_controller.dart';
 import '../../features/auth/presentation/login_page.dart';
+import '../../features/meus_agendamentos/presentation/meus_agendamentos_controller.dart';
+import '../../features/meus_agendamentos/presentation/meus_agendamentos_page.dart';
 import '../../features/produtos/presentation/produtos_controller.dart';
 import '../../features/produtos/presentation/produtos_page.dart';
 import '../../features/servicos/data/servicos_api.dart';
@@ -32,9 +40,11 @@ String? redirecionarPorSessao(SessionController session, String local) {
   }
   final inicio = usuario.isAdmin ? Rotas.admin : Rotas.servicos;
   if (publica || local == '/') return inicio;
-  // Nesta fase o ADMIN só tem o painel provisório; CLIENTE nunca acessa /admin.
-  if (usuario.isAdmin && local != Rotas.admin) return Rotas.admin;
-  if (!usuario.isAdmin && local == Rotas.admin) return Rotas.servicos;
+  // ADMIN só navega em /admin/** (as telas do cliente não são dele);
+  // CLIENTE nunca acessa /admin nem nada abaixo dele.
+  final rotaAdmin = Rotas.isAdmin(local);
+  if (usuario.isAdmin && !rotaAdmin) return Rotas.admin;
+  if (!usuario.isAdmin && rotaAdmin) return Rotas.servicos;
   return null;
 }
 
@@ -99,9 +109,42 @@ GoRouter criarRouter(SessionController session, {String? localInicial}) {
         ),
       ),
       GoRoute(
+        path: Rotas.meusAgendamentos,
+        name: Rotas.nomeMeusAgendamentos,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (ctx) => MeusAgendamentosController(ctx.read<AgendamentoApi>()),
+          child: const MeusAgendamentosPage(),
+        ),
+      ),
+      GoRoute(
         path: Rotas.admin,
         name: Rotas.nomeAdmin,
         builder: (context, state) => const AdminPage(),
+      ),
+      GoRoute(
+        path: Rotas.adminAgenda,
+        name: Rotas.nomeAdminAgenda,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (ctx) => AgendaAdminController(ctx.read<AdminAgendamentoApi>()),
+          child: const AgendaAdminPage(),
+        ),
+      ),
+      GoRoute(
+        path: Rotas.adminAgendamentoForm,
+        name: Rotas.nomeAdminAgendamentoForm,
+        // Sem os argumentos (ex.: rota aberta direto) volta para a agenda.
+        redirect: (context, state) =>
+            state.extra is AgendamentoFormArgs ? null : Rotas.adminAgenda,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (ctx) => AgendamentoFormController(
+            adminApi: ctx.read<AdminAgendamentoApi>(),
+            clientesApi: ctx.read<ClientesApi>(),
+            agendamentoApi: ctx.read<AgendamentoApi>(),
+            servicosApi: ctx.read<ServicosApi>(),
+            args: state.extra! as AgendamentoFormArgs,
+          ),
+          child: const AgendamentoFormPage(),
+        ),
       ),
     ],
   );

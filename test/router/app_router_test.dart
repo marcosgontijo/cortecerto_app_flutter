@@ -2,6 +2,8 @@ import 'package:cortecerto_flutter/app.dart';
 import 'package:cortecerto_flutter/core/network/api_client.dart';
 import 'package:cortecerto_flutter/core/session/session_controller.dart';
 import 'package:cortecerto_flutter/core/session/usuario.dart';
+import 'package:cortecerto_flutter/features/admin/data/admin_agendamento_api.dart';
+import 'package:cortecerto_flutter/features/admin/data/clientes_api.dart';
 import 'package:cortecerto_flutter/features/agendamento/data/agendamento_api.dart';
 import 'package:cortecerto_flutter/features/auth/data/auth_api.dart';
 import 'package:cortecerto_flutter/features/auth/domain/auth_models.dart';
@@ -39,6 +41,8 @@ void main() {
         authApi: authApi,
         servicosApi: servicosApi,
         agendamentoApi: agendamentoApi,
+        adminAgendamentoApi: MockAdminAgendamentoApi(),
+        clientesApi: MockClientesApi(),
       ),
       localInicial: local,
     ));
@@ -111,6 +115,8 @@ void main() {
         authApi: AuthApi(client),
         servicosApi: ServicosApi(client),
         agendamentoApi: AgendamentoApi(client),
+        adminAgendamentoApi: AdminAgendamentoApi(client),
+        clientesApi: ClientesApi(client),
       ),
     ));
     await tester.pumpAndSettle();

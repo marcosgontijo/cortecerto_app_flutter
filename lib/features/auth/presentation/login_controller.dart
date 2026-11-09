@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/state/notificador_seguro.dart';
+
 import '../../../core/errors/api_exception.dart';
 import '../../../core/session/session_controller.dart';
 import '../data/auth_api.dart';
 
-class LoginController extends ChangeNotifier {
+class LoginController extends ChangeNotifier with NotificadorSeguro {
   LoginController(this._api, this._session);
 
   static const msgCredenciaisInvalidas = 'CPF ou senha inválidos';
@@ -30,7 +32,7 @@ class LoginController extends ChangeNotifier {
       await _session.iniciar(resp.token, resp.usuario);
       return true;
     } catch (e) {
-      final erro = ApiErrorMapper.fromObject(e);
+      final erro = ApiErrorMapper.deErro(e);
       _erro = erro.tipo == ApiErrorTipo.naoAutorizado
           ? msgCredenciaisInvalidas
           : erro.mensagem;

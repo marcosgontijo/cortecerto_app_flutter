@@ -4,13 +4,19 @@
 import 'package:cortecerto_flutter/app.dart';
 import 'package:cortecerto_flutter/core/network/api_client.dart';
 import 'package:cortecerto_flutter/core/session/session_controller.dart';
+import 'package:cortecerto_flutter/features/admin/data/admin_agendamento_api.dart';
+import 'package:cortecerto_flutter/features/admin/data/clientes_api.dart';
 import 'package:cortecerto_flutter/features/agendamento/data/agendamento_api.dart';
+import 'package:cortecerto_flutter/features/agendamento/presentation/agendamento_controller.dart';
+import 'package:cortecerto_flutter/features/agendamento/presentation/agendamento_page.dart';
 import 'package:cortecerto_flutter/features/auth/data/auth_api.dart';
 import 'package:cortecerto_flutter/features/servicos/data/servicos_api.dart';
+import 'package:cortecerto_flutter/features/servicos/domain/servico.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:provider/provider.dart';
 
 import '../helpers/fakes.dart';
 
@@ -94,6 +100,8 @@ void main() {
         authApi: AuthApi(client),
         servicosApi: ServicosApi(client),
         agendamentoApi: AgendamentoApi(client),
+        adminAgendamentoApi: AdminAgendamentoApi(client),
+        clientesApi: ClientesApi(client),
       ),
       localInicial: local,
     ));
@@ -338,18 +346,39 @@ void main() {
       expect(find.text('Olá, Maria!'), findsOneWidget);
     });
 
-    testWidgets('dia de ontem fica desabilitado (sem chamada à API)', (tester) async {
-      await irParaAgendamento(tester);
-      final ontem = DateTime.now().subtract(const Duration(days: 1));
-      final hoje = DateTime.now();
-      if (ontem.month == hoje.month) {
-        final f = find.descendant(
-            of: find.byKey(const Key('calendario')), matching: find.text('${ontem.day}'));
-        await tester.tap(ontem.day <= 22 ? f.first : f.last);
-        await tester.pumpAndSettle();
-        expect(backend.dispChamadas, 0);
-        expect(find.byKey(const Key('horarios-escolha-dia')), findsOneWidget);
-      }
+    testWidgets('dia de ontem fica desabilitado (sem chamada à API) — data fixa', (tester) async {
+      // Data fixa (15/01/2030): "ontem" (14) está sempre no mesmo mês, sem depender do relógio.
+      storage = FakeTokenStorage(criarJwt(name: 'Maria'));
+      session = SessionController(storage);
+      await session.restaurar();
+      adapter = FakeHttpAdapter(backend.responder);
+      final client = ApiClient(
+        tokenStorage: storage,
+        onUnauthorized: session.expirar,
+        baseUrl: 'http://teste/api',
+        httpClientAdapter: adapter,
+      );
+      await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionController>.value(value: session),
+          ChangeNotifierProvider(create: (_) => AgendamentoController(AgendamentoApi(client))),
+        ],
+        child: MaterialApp(
+          home: AgendamentoPage(
+            servico: const Servico(id: 1, tipoServico: 'Corte Simples'),
+            hoje: DateTime(2030, 1, 15),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(of: find.byKey(const Key('calendario')), matching: find.text('14')));
+      await tester.pumpAndSettle();
+      expect(backend.dispChamadas, 0);
+      expect(find.byKey(const Key('horarios-escolha-dia')), findsOneWidget);
+      // o dia fixo de "hoje" continua habilitado e chama a API
+      await tester.tap(find.descendant(of: find.byKey(const Key('calendario')), matching: find.text('15')));
+      await tester.pumpAndSettle();
+      expect(backend.dispChamadas, 1);
     });
   });
 

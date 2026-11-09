@@ -62,9 +62,9 @@ void main() {
     );
   });
 
-  test('fromObject mantém ApiException e trata erro qualquer', () {
+  test('deErro mantém ApiException e trata erro qualquer', () {
     const original = ApiException(tipo: ApiErrorTipo.conflito, mensagem: 'x');
-    expect(ApiErrorMapper.fromObject(original), same(original));
-    expect(ApiErrorMapper.fromObject(StateError('x')).tipo, ApiErrorTipo.desconhecido);
+    expect(ApiErrorMapper.deErro(original), same(original));
+    expect(ApiErrorMapper.deErro(StateError('x')).tipo, ApiErrorTipo.desconhecido);
   });
 }

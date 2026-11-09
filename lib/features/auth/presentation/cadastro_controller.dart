@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/state/notificador_seguro.dart';
+
 import '../../../core/errors/api_exception.dart';
 import '../data/auth_api.dart';
 import '../domain/auth_models.dart';
 
-class CadastroController extends ChangeNotifier {
+class CadastroController extends ChangeNotifier with NotificadorSeguro {
   CadastroController(this._api);
 
   static const msgConflito = 'CPF ou e-mail já cadastrado';
@@ -41,7 +43,7 @@ class CadastroController extends ChangeNotifier {
       await _api.cadastrar(request);
       return true;
     } catch (e) {
-      final erro = ApiErrorMapper.fromObject(e);
+      final erro = ApiErrorMapper.deErro(e);
       _errosPorCampo = erro.errosPorCampo;
       _erro = erro.tipo == ApiErrorTipo.conflito ? msgConflito : erro.mensagem;
       return false;

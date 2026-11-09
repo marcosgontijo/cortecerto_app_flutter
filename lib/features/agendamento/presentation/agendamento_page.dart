@@ -10,12 +10,15 @@ import '../../servicos/domain/servico.dart';
 import 'agendamento_controller.dart';
 
 class AgendamentoPage extends StatefulWidget {
-  const AgendamentoPage({super.key, required this.servico, this.hoje});
+  const AgendamentoPage({super.key, required this.servico, this.hoje, this.relogio});
 
   final Servico servico;
 
-  /// Data de referência (para testes). Padrão: hoje.
+  /// Data fixa de referência (para testes). Tem prioridade sobre [relogio].
   final DateTime? hoje;
+
+  /// Fonte de "agora" (para testes). Padrão: `DateTime.now`.
+  final DateTime Function()? relogio;
 
   /// Quantos dias à frente o calendário permite agendar.
   static const diasAFrente = 90;
@@ -25,15 +28,29 @@ class AgendamentoPage extends StatefulWidget {
 }
 
 class _AgendamentoPageState extends State<AgendamentoPage> {
-  late final DateTime _hoje;
   late DateTime _foco;
+  late final AppLifecycleListener _ciclo;
+
+  /// "Hoje" é recalculado a cada build (não fica velho depois da meia-noite).
+  DateTime get _hoje {
+    final agora = widget.hoje ?? (widget.relogio ?? DateTime.now)();
+    return DateTime(agora.year, agora.month, agora.day);
+  }
 
   @override
   void initState() {
     super.initState();
-    final agora = widget.hoje ?? DateTime.now();
-    _hoje = DateTime(agora.year, agora.month, agora.day);
     _foco = _hoje;
+    // Ao voltar ao primeiro plano (ex.: no dia seguinte), redesenha com o "hoje" novo.
+    _ciclo = AppLifecycleListener(onResume: () {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ciclo.dispose();
+    super.dispose();
   }
 
   Future<void> _confirmar() async {
@@ -47,6 +64,10 @@ class _AgendamentoPageState extends State<AgendamentoPage> {
   Widget build(BuildContext context) {
     final controller = context.watch<AgendamentoController>();
     final cs = Theme.of(context).colorScheme;
+    final hoje = _hoje;
+    final ultimoDia = hoje.add(const Duration(days: AgendamentoPage.diasAFrente));
+    if (_foco.isBefore(hoje)) _foco = hoje;
+    if (_foco.isAfter(ultimoDia)) _foco = ultimoDia;
 
     return Scaffold(
       appBar: AppBar(
@@ -75,10 +96,10 @@ class _AgendamentoPageState extends State<AgendamentoPage> {
                   TableCalendar<void>(
                     key: const Key('calendario'),
                     locale: 'pt_BR',
-                    firstDay: _hoje,
-                    lastDay: _hoje.add(const Duration(days: AgendamentoPage.diasAFrente)),
+                    firstDay: hoje,
+                    lastDay: ultimoDia,
                     focusedDay: _foco,
-                    currentDay: _hoje,
+                    currentDay: hoje,
                     startingDayOfWeek: StartingDayOfWeek.sunday,
                     availableCalendarFormats: const {CalendarFormat.month: 'Mês'},
                     selectedDayPredicate: (d) =>
