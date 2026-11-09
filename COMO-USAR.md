@@ -36,3 +36,25 @@ Instale o app ntfy, escolha um nome de tópico difícil de adivinhar e rode:
 
 ## Arquivos em .loop/ (não vão para o git)
 contexto.md · dev.md · testes.md · review.md · veredito.md · feedback.md · historico.md · gate.frozen.sh · RELATORIO.md · logs de cada volta
+
+## O que cada agente aplica
+Os agentes foram refinados com base nas skills de [rubenmarcus/agent-skills](https://github.com/rubenmarcus/agent-skills) (commit `e1aa118`):
+
+| Agente | Skill de base | Na prática |
+|---|---|---|
+| analista | `spec-to-plan` | registra branch/HEAD e o baseline dos testes; separa requisito de sugestão; cada critério de aceite ganha "como verificar"; lista as decisões em aberto |
+| developer | `validated-coding-loop` + `evidence-driven-debugging` | uma mudança focada por vez com verificação e código de saída; reproduz o bug antes de corrigir; erro repetido exige hipótese nova |
+| tester | `quality-gates` | cada teste diz que defeito pega; controle negativo (quebra proposital que o teste precisa pegar); teste pulado ou sem medição faz o gate falhar |
+| reviewer | `critical-adversarial-review` | lê o diff antes do resumo do developer; tenta derrubar o resultado; achados marcados como DEMONSTRADO ou SUSPEITA; não inventa achado |
+| finalizador | `multi-agent-collaboration` | confere sozinho as afirmações que decidem o veredito; DESCONHECIDO nunca vira OK; separa aprovação técnica de aprovação visual/humana |
+
+## Créditos
+Partes das instruções dos agentes foram traduzidas e adaptadas de [rubenmarcus/agent-skills](https://github.com/rubenmarcus/agent-skills), sob a licença MIT:
+
+> MIT License — Copyright (c) 2026 Ruben Marcus
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
