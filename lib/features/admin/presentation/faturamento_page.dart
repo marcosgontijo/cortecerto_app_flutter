@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/compartilhamento/exportador_arquivo.dart';
 import '../../../core/formatters/formatters.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/estados.dart';
+import '../../../core/widgets/feedback.dart';
 import '../domain/faturamento.dart';
+import '../domain/faturamento_csv.dart';
 import '../domain/periodo_faturamento.dart';
 import 'faturamento_controller.dart';
 
 /// Faturamento (`/admin/faturamento`, só ADMIN): período Dia/Semana/Mês com setas, resumo
 /// (Recebido em destaque e Previsto à parte), lista por dia com barra proporcional
 /// (Semana/Mês) e lista por serviço. Pull-to-refresh; os dados vêm sempre do servidor.
+///
+/// FASE 6: ação **Exportar CSV** na AppBar, que gera o CSV do período exibido (com os dados
+/// já carregados, sem nova requisição) e abre a folha de compartilhamento pelo
+/// [ExportadorArquivo] injetado (lido do Provider só no toque).
 class FaturamentoPage extends StatefulWidget {
   const FaturamentoPage({super.key});
 
@@ -20,6 +27,9 @@ class FaturamentoPage extends StatefulWidget {
 }
 
 class _FaturamentoPageState extends State<FaturamentoPage> {
+  /// Preparando/compartilhando o arquivo: a ação não aceita outro toque.
+  bool _exportando = false;
+
   @override
   void initState() {
     super.initState();
@@ -33,7 +43,19 @@ class _FaturamentoPageState extends State<FaturamentoPage> {
     final c = context.watch<FaturamentoController>();
     final t = AppTokens.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Faturamento')),
+      appBar: AppBar(
+        title: const Text('Faturamento'),
+        actions: [
+          Builder(
+            builder: (botaoContext) => IconButton(
+              key: const Key('faturamento-exportar'),
+              tooltip: 'Exportar CSV',
+              icon: const Icon(Icons.file_download_outlined),
+              onPressed: _podeExportar(c) ? () => _exportar(c, botaoContext) : null,
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           key: const Key('faturamento-refresh'),
@@ -50,6 +72,40 @@ class _FaturamentoPageState extends State<FaturamentoPage> {
         ),
       ),
     );
+  }
+
+  /// Só com os dados do período exibido carregados: nada de exportar carregando (inclusive o
+  /// refresh do mesmo período), em erro (mesmo com dados antigos na memória) ou já exportando.
+  bool _podeExportar(FaturamentoController c) =>
+      !_exportando && !c.isLoading && c.erro == null && c.faturamento != null;
+
+  Future<void> _exportar(FaturamentoController c, BuildContext botaoContext) async {
+    if (!_podeExportar(c)) return;
+    // retrato do que está na tela no momento do toque
+    final csv = FaturamentoCsv(c.faturamento!, c.periodo);
+    setState(() => _exportando = true);
+    try {
+      final exportador = context.read<ExportadorArquivo>();
+      await exportador.compartilhar(
+        nomeArquivo: csv.nomeArquivo,
+        bytes: csv.bytes,
+        mimeType: FaturamentoCsv.mimeType,
+        assunto: csv.assunto,
+        origem: _retangulo(botaoContext),
+      );
+    } catch (_) {
+      if (mounted) mostrarFeedback(context, 'Não foi possível exportar o faturamento', erro: true);
+    } finally {
+      if (mounted) setState(() => _exportando = false);
+    }
+  }
+
+  /// Retângulo global do botão (âncora da folha no iPad).
+  Rect? _retangulo(BuildContext botaoContext) {
+    if (!botaoContext.mounted) return null;
+    final box = botaoContext.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 
   List<Widget> _conteudo(FaturamentoController c, AppTokens t) {

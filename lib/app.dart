@@ -3,6 +3,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'core/compartilhamento/exportador_arquivo.dart';
+import 'core/compartilhamento/exportador_share_plus.dart';
 import 'core/config/api_config.dart';
 import 'core/network/api_client.dart';
 import 'core/router/app_router.dart';
@@ -24,7 +26,8 @@ class AppDependencies {
     required this.agendamentoApi,
     required this.adminAgendamentoApi,
     required this.clientesApi,
-  });
+    ExportadorArquivo? exportador,
+  }) : exportador = exportador ?? const ExportadorSharePlus();
 
   factory AppDependencies.criar({
     FlutterSecureStorage storage = const FlutterSecureStorage(),
@@ -54,6 +57,9 @@ class AppDependencies {
   final AgendamentoApi agendamentoApi;
   final AdminAgendamentoApi adminAgendamentoApi;
   final ClientesApi clientesApi;
+
+  /// Folha de compartilhamento do sistema (exportar o faturamento em CSV, FASE 6).
+  final ExportadorArquivo exportador;
 }
 
 class CorteCertoApp extends StatefulWidget {
@@ -94,6 +100,7 @@ class _CorteCertoAppState extends State<CorteCertoApp> {
         Provider<AgendamentoApi>.value(value: deps.agendamentoApi),
         Provider<AdminAgendamentoApi>.value(value: deps.adminAgendamentoApi),
         Provider<ClientesApi>.value(value: deps.clientesApi),
+        Provider<ExportadorArquivo>.value(value: deps.exportador),
       ],
       child: MaterialApp.router(
         title: 'Corte Certo',
